@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>h.run 도구 모음</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── HUB LAYOUT ── */
+    .hub-wrap{max-width:560px;margin:0 auto;padding:40px 22px 90px}
+    .hub-title{font-size:clamp(1.7rem,4vw,2.5rem);font-weight:800;letter-spacing:-1.2px;line-height:1.15;margin-bottom:4px;text-align:center}
+    .hub-title span{background:linear-gradient(135deg,var(--ac),var(--am));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hub-sub{text-align:center;margin-bottom:32px;font-size:14px;color:var(--t2)}
+
+    /* ── TOOL CARD ── */
+    .tool-card{display:block;text-decoration:none;color:inherit;
+      background:var(--s1);border:1px solid var(--b1);border-radius:var(--r16);
+      padding:24px 22px;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,.06);
+      transition:all .2s;position:relative}
+    .tool-card:hover{border-color:var(--ac);box-shadow:0 8px 24px rgba(232,101,10,.15);transform:translateY(-2px)}
+
+    .tool-icon{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;
+      border-radius:12px;font-size:28px;margin-bottom:16px;background:rgba(232,101,10,.08)}
+
+    .tool-title{font-size:18px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px;color:var(--t1)}
+    .tool-sub{font-size:13px;color:var(--t2);margin-bottom:12px;font-weight:500}
+    .tool-desc{font-size:13px;color:var(--t3);line-height:1.5}
+
+    .tool-arrow{float:right;margin-top:8px;color:var(--ac);font-weight:700;font-size:16px}
+    .tool-card:hover .tool-arrow{transform:translateX(2px);transition:transform .2s}
+
+    /* ── FOOTER ── */
+    .hub-footer{text-align:center;margin-top:48px;font-size:12px;color:var(--t3)}
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div class="hub-wrap">
+
+    <!-- HEADER -->
+    <div style="margin-bottom:40px;animation:fuv .42s ease both">
+      <h1 class="hub-title">h.run <span>도구 모음</span></h1>
+      <p class="hub-sub">Admin Tools Hub</p>
+    </div>
+
+    <!-- TOOLS -->
+    <div style="animation:fuv .42s ease both;animation-delay:.05s">
+      <a href="airbnb-revenue-calculator_v2.html" class="tool-card" aria-label="에어비앤비 수익 계산기">
+        <div class="tool-icon">💸</div>
+        <div class="tool-title">에어비앤비 수익 계산기</div>
+        <div class="tool-sub">Airbnb Revenue Calculator</div>
+        <div class="tool-desc">슬라이더로 월별 이익, 점유율, 수익 분석</div>
+        <span class="tool-arrow">→</span>
+      </a>
+    </div>
+
+    <div style="animation:fuv .42s ease both;animation-delay:.1s">
+      <a href="electrical-work-estimate-calculator_v1.html" class="tool-card" aria-label="전기공사 견적 계산기">
+        <div class="tool-icon">⚡</div>
+        <div class="tool-title">전기공사 견적 계산기</div>
+        <div class="tool-sub">Electrical Work Estimate</div>
+        <div class="tool-desc">공사 항목, 자재비, 공임비 자동 계산</div>
+        <span class="tool-arrow">→</span>
+      </a>
+    </div>
+
+    <div style="animation:fuv .42s ease both;animation-delay:.16s">
+      <a href="bedding-estimate-calculator_v2.html" class="tool-card" aria-label="침구 견적 계산서">
+        <div class="tool-icon">🛏️</div>
+        <div class="tool-title">침구 견적 계산서</div>
+        <div class="tool-sub">Bedding Estimate Calculator</div>
+        <div class="tool-desc">침대 수와 인원 기반 물품 수량 자동 계산</div>
+        <span class="tool-arrow">→</span>
+      </a>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="hub-footer">
+      <p>© 2026 h.run. All rights reserved.</p>
+    </div>
+
+  </div>
+</body>
+</html>

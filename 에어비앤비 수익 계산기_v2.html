@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>에어비앤비 수익 계산기</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;0,9..40,900;1,9..40,400&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#faf8f5; --s1:#ffffff; --s2:#f5f2ee; --s3:#ede8e0; --s4:#e4ddd2;
+  --b1:rgba(0,0,0,0.07); --b2:rgba(0,0,0,0.11); --b3:rgba(0,0,0,0.17);
+  --t1:#1c1612; --t2:#6b5e52; --t3:#a8998c;
+  --ac:#e8650a; --ac2:#f07820; --acg:rgba(232,101,10,0.13);
+  --gr:#16a34a; --grd:rgba(22,163,74,0.09);
+  --rd:#dc2626; --rdd:rgba(220,38,38,0.09);
+  --am:#d97706; --amd:rgba(217,119,6,0.10);
+  --bl:#2563eb; --bld:rgba(37,99,235,0.09);
+  --pk:#db2777; --pkd:rgba(219,39,119,0.09);
+  --r4:8px; --r8:12px; --r12:16px; --r16:20px; --r24:28px;
+}
+
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);color:var(--t1);
+  min-height:100vh;-webkit-font-smoothing:antialiased;line-height:1.6;font-size:18px}
+
+/* ── BG GLOW ── */
+.bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-glow::before{content:'';position:absolute;top:-25%;left:-15%;width:70vw;height:70vw;
+  background:radial-gradient(circle,rgba(232,101,10,.08) 0%,transparent 60%);
+  animation:dft1 20s ease-in-out infinite alternate}
+.bg-glow::after{content:'';position:absolute;bottom:-20%;right:-10%;width:55vw;height:55vw;
+  background:radial-gradient(circle,rgba(217,119,6,.06) 0%,transparent 60%);
+  animation:dft2 25s ease-in-out infinite alternate}
+@keyframes dft1{from{transform:translate(0,0)}to{transform:translate(5%,7%)}}
+@keyframes dft2{from{transform:translate(0,0)}to{transform:translate(-6%,-5%)}}
+
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:40px 22px 90px}
+
+/* ── HEADER ── */
+.hdr{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;margin-bottom:32px}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--ac2);
+  background:rgba(232,101,10,.08);border:1px solid rgba(232,101,10,.2);
+  border-radius:999px;padding:4px 12px;margin-bottom:12px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--ac);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.pg-title{font-size:clamp(1.7rem,4vw,2.5rem);font-weight:800;letter-spacing:-1.2px;line-height:1.15}
+.pg-title span{background:linear-gradient(135deg,var(--ac),var(--am));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.pg-sub{margin-top:7px;font-size:14px;color:var(--t2)}
+
+.notion-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;
+  background:#fff;border:1px solid var(--b2);border-radius:var(--r8);
+  font-size:14px;font-weight:600;color:var(--t1);cursor:pointer;transition:all .2s;
+  white-space:nowrap;font-family:inherit;flex-shrink:0}
+.notion-btn:hover{background:var(--s3);border-color:var(--b3);transform:translateY(-1px);
+  box-shadow:0 4px 20px rgba(0,0,0,.35)}
+
+/* ══════════════════════════════════════
+   SLIDER HERO
+══════════════════════════════════════ */
+.slider-hero{
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r16);
+  padding:28px 28px 26px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.sh-label{font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--t2);margin-bottom:22px;display:flex;align-items:center;gap:10px}
+.sh-label::after{content:'';flex:1;height:1px;background:var(--b1)}
+.sh-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+@media(max-width:620px){.sh-grid{grid-template-columns:1fr}}
+
+/* Slider block */
+.sl-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.sl-label-sm{font-size:14px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--t2);margin-bottom:4px}
+.sl-hint{font-size:14px;color:var(--t3)}
+.sl-badge{font-size:18px;font-weight:800;letter-spacing:-0.8px;line-height:1;text-align:right;
+  background:linear-gradient(135deg,var(--ac),var(--am));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sl-badge-sub{font-size:14px;color:var(--t2);text-align:right;margin-top:2px}
+
+/* Range */
+.range-wrap{position:relative;height:26px;display:flex;align-items:center;margin-bottom:12px}
+.track-bg{position:absolute;left:0;right:0;height:6px;border-radius:999px;
+  background:var(--s3);border:1px solid var(--b1);pointer-events:none}
+.track-fill{position:absolute;left:0;height:6px;border-radius:999px;
+  background:linear-gradient(90deg,var(--ac),var(--ac2));pointer-events:none;
+  transition:width .04s linear}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  position:relative;z-index:2;width:100%;height:26px;
+  background:transparent;cursor:pointer;outline:none;border:none;padding:0;margin:0}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:24px;height:24px;border-radius:50%;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  box-shadow:0 0 0 5px var(--acg),0 2px 10px rgba(0,0,0,.45);
+  cursor:pointer;transition:transform .15s,box-shadow .15s}
+input[type=range]::-webkit-slider-thumb:hover{
+  transform:scale(1.18);box-shadow:0 0 0 7px var(--acg),0 4px 16px rgba(0,0,0,.4)}
+input[type=range]::-webkit-slider-thumb:active{transform:scale(1.06)}
+input[type=range]::-moz-range-thumb{
+  width:24px;height:24px;border-radius:50%;border:none;
+  background:linear-gradient(135deg,var(--ac),var(--ac2));
+  box-shadow:0 0 0 5px var(--acg)}
+
+/* Tick row */
+.tick-row{display:flex;justify-content:space-between;padding:0 3px}
+.tick{font-size:12px;color:var(--t3);font-weight:500;cursor:pointer;white-space:nowrap;
+  padding:2px 4px;border-radius:4px;transition:all .15s;user-select:none}
+.tick:hover{color:var(--t2);background:var(--s2)}
+.tick.active{color:var(--ac);font-weight:700}
+
+/* ════ MAIN GRID ════ */
+.main-grid{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start}
+.left-col{position:sticky;top:20px}
+@media(max-width:860px){.main-grid{grid-template-columns:1fr}}
+
+/* ── CARD ── */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r16);overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.card+.card{margin-top:16px}
+.card-hdr{padding:20px 22px 0;display:flex;align-items:center;gap:10px}
+.card-ico{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-size:18px;flex-shrink:0}
+.card-ttl{font-size:14px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--t2)}
+.card-body{padding:16px 22px 22px}
+
+/* ── FIELD ── */
+.field{margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+label.fl{display:block;font-size:14px;font-weight:600;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--t2);margin-bottom:6px}
+input[type=number],select{
+  width:100%;background:#fff;border:1px solid var(--b2);
+  border-radius:var(--r4);color:var(--t1);font-family:'DM Sans',sans-serif;
+  font-size:18px;font-weight:500;padding:9px 12px;outline:none;
+  transition:border-color .15s,box-shadow .15s,background .15s;
+  -webkit-appearance:none;appearance:none}
+input[type=number]:focus,select:focus{
+  border-color:var(--ac);box-shadow:0 0 0 3px var(--acg);background:#fff}
+select{cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%239898aa' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+.divider{height:1px;background:var(--b1);margin:16px 0}
+
+/* ── BTNS ── */
+.btn-ghost{width:100%;padding:10px;border-radius:var(--r8);border:1px solid var(--b1);
+  background:transparent;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;
+  color:var(--t2);cursor:pointer;transition:all .2s}
+.btn-ghost:hover{border-color:var(--b2);color:var(--t1);background:var(--s2)}
+
+/* ── KPI ── */
+.kpi-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px}
+.kpi{border-radius:var(--r8);padding:14px;transition:border-color .2s}
+.kpi-lbl{font-size:14px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--t2);margin-bottom:7px}
+.kpi-val{font-size:20px;font-weight:800;letter-spacing:-.8px;line-height:1;margin-bottom:3px}
+.kpi-sub{font-size:14px;color:var(--t2)}
+.kpi-ac{background:rgba(232,101,10,.06);border:1px solid rgba(232,101,10,.18)}
+.kpi-ac .kpi-val{color:var(--ac)}
+.kpi-gr{background:var(--grd);border:1px solid rgba(52,211,153,.18)}
+.kpi-gr .kpi-val{color:var(--gr)}
+.kpi-am{background:var(--amd);border:1px solid rgba(251,191,36,.18)}
+.kpi-am .kpi-val{color:var(--am)}
+.kpi-rd{background:var(--rdd);border:1px solid rgba(248,113,113,.18)}
+.kpi-rd .kpi-val{color:var(--rd)}
+.kpi-pk{background:var(--pkd);border:1px solid rgba(232,101,10,.18)}
+.kpi-pk .kpi-val{color:var(--pk)}
+.kpi-nt{background:var(--s2);border:1px solid var(--b1)}
+.kpi-nt .kpi-val{color:var(--t1)}
+
+/* ── BREAKEVEN ── */
+.be-row{display:flex;align-items:center;gap:12px;
+  background:rgba(232,101,10,.06);border:1px solid rgba(232,101,10,.18);
+  border-radius:var(--r8);padding:13px 16px}
+.be-icon{font-size:18px}
+.be-lbl{font-size:14px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--t2)}
+.be-val{font-size:20px;font-weight:800;color:var(--am);letter-spacing:-.8px}
+.be-sub{font-size:14px;color:var(--t2)}
+
+/* ── CHIPS ── */
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+  background:var(--s2);border:1px solid var(--b1);border-radius:999px;
+  font-size:14px;font-weight:600;color:var(--t2)}
+.chip b{color:var(--ac)}
+
+/* ── STACKED BAR ── */
+.sbar-track{height:7px;background:var(--s3);border-radius:999px;overflow:hidden;
+  display:flex;gap:1.5px;margin-bottom:14px}
+.sbar-seg{height:100%;border-radius:999px;
+  transition:width .55s cubic-bezier(.34,1.2,.64,1);flex-shrink:0}
+.legend{display:flex;flex-direction:column;gap:8px}
+.leg-row{display:flex;align-items:center;gap:9px}
+.leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.leg-name{font-size:14px;font-weight:500;color:var(--t2);flex:1;min-width:0}
+.leg-bar{flex:2;height:3px;background:var(--s3);border-radius:999px;overflow:hidden}
+.leg-fill{height:100%;border-radius:999px;transition:width .55s cubic-bezier(.34,1.2,.64,1)}
+.leg-pct{font-size:14px;font-weight:700;width:34px;text-align:right;flex-shrink:0}
+.leg-amt{font-size:14px;color:var(--t2);width:84px;text-align:right;flex-shrink:0}
+
+/* ── TABS ── */
+.tab-row{display:flex;gap:3px;background:var(--s2);border-radius:var(--r4);
+  padding:3px;margin-bottom:14px}
+.tab-it{flex:1;padding:7px 5px;border-radius:5px;border:none;
+  background:transparent;font-family:'DM Sans',sans-serif;
+  font-size:14px;font-weight:600;color:var(--t2);cursor:pointer;
+  transition:all .2s;text-align:center}
+.tab-it.on{background:var(--s3);color:var(--t1);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.tab-it:hover:not(.on){color:var(--t1)}
+
+/* ── MATRIX ── */
+.mx-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+table th{padding:9px 8px;text-align:center;font-size:14px;font-weight:700;
+  letter-spacing:.8px;text-transform:uppercase;color:var(--t2);
+  border-bottom:1px solid var(--b1)}
+table th:first-child{text-align:left;padding-left:12px}
+table td{padding:5px 4px;text-align:center;
+  border-bottom:1px solid rgba(255,255,255,.025)}
+table td:first-child{text-align:left;padding-left:12px;font-size:14px;
+  font-weight:600;color:var(--t2);white-space:nowrap}
+table tbody tr:last-child td{border-bottom:none}
+table tbody tr:hover td{background:rgba(255,255,255,.018)}
+.ci{padding:7px 4px;border-radius:var(--r4);text-align:center;
+  display:inline-block;width:100%;min-width:82px;transition:all .2s}
+.ci.sel{outline:1.5px solid var(--ac);outline-offset:1px}
+.ci-main{font-size:14px;font-weight:700;letter-spacing:-.3px}
+.ci-sub{font-size:14px;margin-top:1px;opacity:.6}
+.c-gr{background:rgba(52,211,153,.1);color:#34d399}
+.c-li{background:rgba(163,230,53,.1);color:#a3e635}
+.c-am{background:rgba(251,191,36,.1);color:#fbbf24}
+.c-rd{background:rgba(248,113,113,.1);color:#f87171}
+.c-bl{background:rgba(96,165,250,.1);color:#60a5fa}
+.c-pu{background:rgba(232,101,10,.1);color:#e8650a}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(70px);
+  background:#fff;border:1px solid var(--b2);border-radius:var(--r8);box-shadow:0 8px 32px rgba(0,0,0,.12);
+  padding:11px 20px;font-size:14px;font-weight:600;color:var(--t1);
+  box-shadow:0 8px 36px rgba(0,0,0,.5);z-index:9999;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .25s;
+  opacity:0;pointer-events:none;white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ── MODAL ── */
+.mo-ov{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.72);
+  backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;
+  padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
+.mo-ov.open{opacity:1;pointer-events:all}
+.mo{background:#fff;border:1px solid var(--b2);border-radius:var(--r24);box-shadow:0 20px 60px rgba(0,0,0,.15);
+  padding:28px;width:100%;max-width:520px;
+  transform:scale(.95) translateY(18px);
+  transition:transform .3s cubic-bezier(.34,1.3,.64,1);
+  max-height:82vh;overflow-y:auto}
+.mo-ov.open .mo{transform:scale(1) translateY(0)}
+.mo-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.mo-ttl{font-size:16px;font-weight:700}
+.mo-x{width:28px;height:28px;border-radius:7px;border:none;background:var(--s2);
+  color:var(--t2);cursor:pointer;font-size:14px;display:flex;align-items:center;
+  justify-content:center;transition:all .15s}
+.mo-x:hover{background:var(--s3);color:var(--t1)}
+.mo-desc{font-size:14px;color:var(--t2);margin-bottom:16px;line-height:1.6}
+.mo-code{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r4);
+  padding:14px;font-family:'SF Mono','Fira Code',monospace;font-size:14px;
+  color:var(--t1);white-space:pre;overflow-x:auto;margin-bottom:14px;
+  max-height:240px;line-height:1.7}
+.mo-acts{display:flex;gap:9px}
+.mo-btn{flex:1;padding:11px;border-radius:var(--r4);border:none;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.mo-btn.p{background:linear-gradient(135deg,var(--ac),var(--ac2));color:white;
+  box-shadow:0 3px 14px var(--acg)}
+.mo-btn.p:hover{transform:translateY(-1px)}
+.mo-btn.s{background:var(--s2);color:var(--t2);border:1px solid var(--b1)}
+.mo-btn.s:hover{background:var(--s3);color:var(--t1)}
+
+/* ── ANIM ── */
+@keyframes fuv{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fuv{animation:fuv .42s ease both}
+.d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.16s}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:999px}
+
+.right-col > .card+.card{margin-top:16px}
+@media(max-width:860px){.hdr{flex-direction:column;align-items:flex-start}}
+@media(max-width:480px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .kpi-val{font-size:17px}
+  .wrap{padding:20px 14px 60px}
+  .slider-hero{padding:20px 16px}
+  .sh-grid{gap:22px}
+}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="hdr fuv">
+  <div>
+    <h1 class="pg-title">에어비앤비 <span>수익 계산기</span></h1>
+    <p class="pg-sub">슬라이더로 객단가 · 예약율을 조정하면 수익이 실시간 업데이트됩니다</p>
+    <div style="margin-top:10px;display:inline-flex;flex-direction:column;gap:2px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r8);padding:8px 14px;font-size:12px;color:#c97a3a;line-height:1.7">본 도구는 예측 목적으로 제작되었으며, 실제 결과와 차이가 있을 수 있습니다. 무단 복제를 금합니다.<br>© 2026 에이치런(h.run) All rights reserved.</div>
+  </div>
+  <button class="notion-btn" onclick="openNotionModal()">
+    📋 분석 결과 내보내기
+  </button>
+</div>
+
+<!-- ══ MAIN GRID ══ -->
+<div class="main-grid">
+
+  <!-- LEFT: Settings -->
+  <div class="left-col fuv d2">
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-ico" style="background:rgba(232,101,10,.1)">💸</div>
+        <span class="card-ttl">비용 설정</span>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label class="fl" style="display:flex;align-items:center;gap:8px">
+            월세 (원)
+            <span id="rent_pct_badge" style="font-size:12px;font-weight:700;color:var(--ac);background:rgba(232,101,10,.08);border:1px solid rgba(232,101,10,.22);border-radius:999px;padding:1px 8px;letter-spacing:0">수익 대비 —%</span>
+          </label>
+          <input type="text" id="rent" style="width:100%;background:#fff;border:1px solid var(--b2);border-radius:var(--r4);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;padding:9px 12px;outline:none;transition:border-color .15s,box-shadow .15s" value="1,500,000" oninput="fmtInput(this)" onblur="fmtInput(this);recalc()" onchange="recalc()" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label class="fl">청소비율 (%)</label>
+          <input type="number" id="clean_rate" value="10" min="0" max="100" step=".5" onchange="recalc()">
+        </div>
+        <div class="field">
+          <label class="fl">공과금 비율 (%)</label>
+          <input type="number" id="util_rate" value="3" min="0" max="100" step=".5" onchange="recalc()">
+        </div>
+        <div class="field">
+          <label class="fl">소모품 비율 (%)</label>
+          <input type="number" id="supply_rate" value="6" min="0" max="100" step=".5" onchange="recalc()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-ico" style="background:rgba(251,191,36,.12)">💼</div>
+        <span class="card-ttl">투자 비용</span>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label class="fl">보증금 (원)</label>
+          <input type="text" id="deposit" style="width:100%;background:#fff;border:1px solid var(--b2);border-radius:var(--r4);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;padding:9px 12px;outline:none;transition:border-color .15s,box-shadow .15s" value="30,000,000" oninput="fmtInput(this)" onblur="fmtInput(this);recalc()" onchange="recalc()" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label class="fl">세팅 비용 (원)</label>
+          <input type="text" id="setup_cost" style="width:100%;background:#fff;border:1px solid var(--b2);border-radius:var(--r4);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;padding:9px 12px;outline:none;transition:border-color .15s,box-shadow .15s" value="20,000,000" oninput="fmtInput(this)" onblur="fmtInput(this);recalc()" onchange="recalc()" inputmode="numeric">
+        </div>
+
+        <!-- 힌트 콜아웃 -->
+        <div style="margin-top:14px;background:rgba(232,101,10,.06);border-left:3px solid var(--ac);border-radius:0 var(--r4) var(--r4) 0;padding:10px 12px">
+          <div style="font-size:13px;color:var(--t2);line-height:1.6">💡 보증금은 저금리 관광자금 대출 활용이 가능하며, 계약 종료 시 반환되는 자금으로 실질 손익분기 계산에서 제외하는 것이 합리적입니다.</div>
+        </div>
+
+        <!-- 총 투자비용 + 보증금 포함 체크 -->
+        <div style="margin-top:14px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r8);padding:12px 14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:600;color:var(--t2)">총 투자비용</span>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--t3);user-select:none">
+              <input type="checkbox" id="include_deposit" onchange="recalc()"
+                style="width:14px;height:14px;accent-color:var(--ac);cursor:pointer">
+              보증금 포함
+            </label>
+          </div>
+          <div style="font-size:18px;font-weight:800;color:var(--t1)" id="total_inv_disp">20,000,000원</div>
+          <div style="font-size:12px;color:var(--t3);margin-top:3px" id="total_inv_detail">세팅비용만 포함</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Results -->
+  <div class="right-col fuv d3">
+
+    <!-- 슬라이더 섹션 -->
+    <div>
+<!-- ══ SECTION 1: 기본 객단가 ══ -->
+    <div class="slider-hero fuv d1" style="margin-bottom:14px">
+      <div class="sh-label">🏠 기본 객단가 섹션</div>
+    
+      <!-- 인원 설정 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px">
+        <div>
+          <div class="sl-label-sm" style="font-size:14px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--t2);margin-bottom:6px">기준 인원</div>
+          <div style="position:relative">
+            <input type="number" id="base_guests" value="4" min="1" max="20" step="1" onchange="recalc()"
+              style="width:100%;background:#fff;border:1px solid var(--b2);border-radius:var(--r4);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;padding:9px 36px 9px 12px;outline:none;-webkit-appearance:none;appearance:none">
+            <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--t3);pointer-events:none">명</span>
+          </div>
+        </div>
+        <div>
+          <div class="sl-label-sm" style="font-size:14px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--t2);margin-bottom:6px">최대 인원</div>
+          <div style="position:relative">
+            <input type="number" id="max_guests" value="6" min="1" max="20" step="1" onchange="recalc()"
+              style="width:100%;background:#fff;border:1px solid var(--b2);border-radius:var(--r4);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;padding:9px 36px 9px 12px;outline:none;-webkit-appearance:none;appearance:none">
+            <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--t3);pointer-events:none">명</span>
+          </div>
+        </div>
+      </div>
+    
+      <!-- 슬라이더 2개 -->
+      <div class="sh-grid">
+        <!-- 기본 객단가 슬라이더 -->
+        <div>
+          <div class="sl-hdr">
+            <div>
+              <div class="sl-label-sm">💰 기본 객단가</div>
+              <div class="sl-hint">기준인원 <span id="base_guests_disp">4</span>인 이하 적용</div>
+            </div>
+            <div>
+              <div class="sl-badge" id="price_badge">200,000원</div>
+              <div class="sl-badge-sub" id="price_badge_sub">4인 기준</div>
+            </div>
+          </div>
+          <div class="range-wrap">
+            <div class="track-bg"></div>
+            <div class="track-fill" id="price_fill" style="width:20%"></div>
+            <input type="range" id="price_sl" min="100000" max="600000" step="10000" value="200000"
+              oninput="onPrice(+this.value)" onchange="onPrice(+this.value)">
+          </div>
+          <div class="tick-row" style="position:relative;height:18px;padding:0">
+            <span class="tick" style="position:absolute;left:0%;transform:translateX(0%)" onclick="setPrice(100000)">10만</span>
+            <span class="tick active" style="position:absolute;left:20%;transform:translateX(-50%)" onclick="setPrice(200000)">20만</span>
+            <span class="tick" style="position:absolute;left:40%;transform:translateX(-50%)" onclick="setPrice(300000)">30만</span>
+            <span class="tick" style="position:absolute;left:60%;transform:translateX(-50%)" onclick="setPrice(400000)">40만</span>
+            <span class="tick" style="position:absolute;left:80%;transform:translateX(-50%)" onclick="setPrice(500000)">50만</span>
+            <span class="tick" style="position:absolute;left:100%;transform:translateX(-100%)" onclick="setPrice(600000)">60만</span>
+          </div>
+        </div>
+    
+        <!-- 예약율 -->
+        <div>
+          <div class="sl-hdr">
+            <div>
+              <div class="sl-label-sm">📅 예약율 (OCC)</div>
+              <div class="sl-hint">월 <span id="nights_disp">21</span>박 예약</div>
+            </div>
+            <div>
+              <div class="sl-badge" id="occ_badge">70%</div>
+              <div class="sl-badge-sub">30일 기준</div>
+            </div>
+          </div>
+          <div class="range-wrap">
+            <div class="track-bg"></div>
+            <div class="track-fill" id="occ_fill" style="width:70%"></div>
+            <input type="range" id="occ_sl" min="0" max="100" step="1" value="70"
+              oninput="onOcc(+this.value)" onchange="onOcc(+this.value)">
+          </div>
+          <div class="tick-row" style="position:relative;height:18px;padding:0">
+            <span class="tick" style="position:absolute;left:0%;transform:translateX(0%)" onclick="setOcc(0)">0%</span>
+            <span class="tick" style="position:absolute;left:25%;transform:translateX(-50%)" onclick="setOcc(25)">25%</span>
+            <span class="tick" style="position:absolute;left:50%;transform:translateX(-50%)" onclick="setOcc(50)">50%</span>
+            <span class="tick" style="position:absolute;left:75%;transform:translateX(-50%)" onclick="setOcc(75)">75%</span>
+            <span class="tick" style="position:absolute;left:100%;transform:translateX(-100%)" onclick="setOcc(100)">100%</span>
+          </div>
+        </div>
+      </div>
+    
+      <!-- 기본 총 예상 수입 -->
+      <div style="margin-top:22px;background:rgba(232,101,10,.04);border:1px solid rgba(232,101,10,.18);border-radius:var(--r8);padding:16px 20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:14px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t2);margin-bottom:4px">총 예상 수입 (기본)</div>
+            <div style="font-size:14px;color:var(--t3)" id="base_rev_detail">300,000원 × 21박</div>
+          </div>
+          <div style="font-size:18px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,var(--ac),var(--am));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text" id="base_rev_total">6,300,000원</div>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(232,101,10,.15);font-size:14px;color:var(--t3)">인당 <span id="base_per_person_disp" style="color:var(--ac);font-weight:700">75,000원</span> <span id="base_per_person_basis">(기준 4인)</span></div>
+      </div>
+    </div><!-- /section1 -->
+    
+    <!-- ══ SECTION 2: 추가 수익 ══ -->
+    <div class="slider-hero fuv d1" style="margin-bottom:14px;border-color:rgba(217,119,6,.2)">
+    
+      <!-- 헤더 + 체크박스 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0">
+        <div class="sh-label" style="color:var(--bl);margin-bottom:0">➕ 추가 수익 섹션</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-size:14px;color:var(--t2);font-weight:600">
+          <input type="checkbox" id="extra_skip" checked onchange="toggleExtra(this)"
+            style="width:16px;height:16px;accent-color:var(--ac);cursor:pointer;flex-shrink:0">
+          계산 안함
+        </label>
+      </div>
+    
+      <!-- 접히는 입력 영역 -->
+      <div id="extra_body" style="display:none;margin-top:22px">
+        <div class="sh-grid" style="margin-bottom:22px">
+          <!-- 1인당 추가 비용 -->
+          <div>
+            <div class="sl-label-sm" style="font-size:14px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t2);margin-bottom:6px">1인당 추가 비용</div>
+            <div style="position:relative">
+              <input type="number" id="extra_fee" value="20000" step="5000" min="0" onchange="recalc()"
+                style="width:100%;background:#fff;border:1px solid var(--b2);border-radius:var(--r4);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;padding:9px 36px 9px 12px;outline:none;-webkit-appearance:none;appearance:none">
+              <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--t3);pointer-events:none">원/인</span>
+            </div>
+            <div style="font-size:14px;color:var(--t3);margin-top:5px">기준인원 초과 1명당 부과</div>
+          </div>
+          <!-- 월 평균 예상 추가 인원 -->
+          <div>
+            <div class="sl-label-sm" style="font-size:14px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t2);margin-bottom:6px">월 평균 예상 추가 인원</div>
+            <div style="position:relative">
+              <input type="number" id="avg_extra_guests" value="1" step="1" min="0" onchange="recalc()"
+                style="width:100%;background:#fff;border:1px solid var(--b2);border-radius:var(--r4);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:18px;font-weight:500;padding:9px 36px 9px 12px;outline:none;-webkit-appearance:none;appearance:none">
+              <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--t3);pointer-events:none">명</span>
+            </div>
+            <div style="font-size:14px;color:var(--t3);margin-top:5px">월 평균 추가 인원 발생 예상 인원수</div>
+          </div>
+        </div>
+    
+        <!-- 추가 총 예상 수입 -->
+        <div style="background:rgba(217,119,6,.05);border:1px solid rgba(217,119,6,.2);border-radius:var(--r8);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-size:14px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t2);margin-bottom:4px">추가 총 예상 수입</div>
+            <div style="font-size:14px;color:var(--t3)" id="extra_rev_detail">20,000원 × 1명</div>
+          </div>
+          <div style="font-size:18px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,var(--am),var(--ac));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text" id="extra_rev_total">0원</div>
+        </div>
+      </div>
+    
+    </div><!-- /section2 -->
+    
+    <!-- ══ 합계 총 예상 수익 ══ -->
+    <div class="fuv d1" style="margin-bottom:20px;background:linear-gradient(135deg,rgba(232,101,10,.07),rgba(217,119,6,.04));border:1.5px solid rgba(232,101,10,.22);border-radius:var(--r16);padding:24px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:18px">💎</span>
+          <span style="font-size:14px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--ac)">합계 총 예상 수익</span>
+        </div>
+        <div style="font-size:14px;color:var(--t2)" id="total_rev_detail">기본 수입 + 추가 수입</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,var(--ac),var(--am));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1" id="total_rev_grand">8,820,000원</div>
+        <div style="font-size:14px;color:var(--t3);margin-top:4px" id="total_rev_sub">월 기준</div>
+      </div>
+    </div><!-- /total -->
+    </div>
+
+
+    <!-- KPI -->
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-ico" style="background:rgba(52,211,153,.12)">📊</div>
+        <span class="card-ttl">수익 분석</span>
+      </div>
+      <div class="card-body">
+        <div class="chips" id="chips_row"></div>
+        <div class="kpi-grid" id="kpi_grid"></div>
+        <div class="be-row" id="be_row"></div>
+      </div>
+    </div>
+
+    <!-- BREAKDOWN -->
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-ico" style="background:rgba(96,165,250,.12)">📉</div>
+        <span class="card-ttl">매출 구성</span>
+      </div>
+      <div class="card-body">
+        <div class="sbar-track" id="sbar"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+
+    <!-- MATRIX -->
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-ico" style="background:rgba(167,139,250,.12)">🗂️</div>
+        <span class="card-ttl">시나리오 매트릭스</span>
+      </div>
+      <div class="card-body" style="padding-top:14px">
+        <div class="tab-row">
+          <button class="tab-it on" onclick="sw('profit',this)">순수익</button>
+          <button class="tab-it"    onclick="sw('revenue',this)">총매출</button>
+          <button class="tab-it"    onclick="sw('break',this)">손익분기</button>
+          <button class="tab-it"    onclick="sw('pct',this)">수익률</button>
+        </div>
+        <div class="mx-scroll"><table id="mtx"></table></div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /main-grid -->
+</div><!-- /wrap -->
+
+<!-- NOTION MODAL -->
+<div class="mo-ov" id="mo_notion" onclick="moOut(event)">
+  <div class="mo">
+    <div class="mo-hdr">
+      <span class="mo-ttl">
+        📋 분석 결과 내보내기
+      </span>
+      <button class="mo-x" onclick="closeMo()">✕</button>
+    </div>
+    <p class="mo-desc">아래 내용을 클립보드에 복사합니다.</p>
+    <pre class="mo-code" id="mo_code"></pre>
+    <div class="mo-acts">
+      <button class="mo-btn p" onclick="copyNotion()">📋 클립보드 복사</button>
+      <button class="mo-btn s" onclick="closeMo()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ════════════════════ DATA ════════════════════ */
+const PRICES=[100000,150000,200000,250000,300000,400000,500000,600000];
+const OCCS  =[40,50,60,70,80,90,100];
+let mxMode='profit';
+
+/* ════════════════════ SLIDER ════════════════════ */
+const O_MIN=0,    O_MAX=100;
+
+function ofill(v){ document.getElementById('occ_fill').style.width=((v-O_MIN)/(O_MAX-O_MIN)*100)+'%'; }
+
+function updatePriceTicks(v){
+  const snaps=[100000,200000,300000,400000,500000,600000];
+  document.querySelectorAll('.tick-row:first-of-type .tick, #price_sl ~ .tick-row .tick').forEach((el,i)=>{
+    el.classList.toggle('active', snaps[i]!==undefined && Math.abs(snaps[i]-v)<5001);
+  });
+}
+function updateOccTicks(v){
+  const snaps=[0,25,50,75,100];
+  // find all tick rows - second one is OCC
+  const rows=document.querySelectorAll('.tick-row');
+  if(rows[1]) rows[1].querySelectorAll('.tick').forEach((el,i)=>{
+    el.classList.toggle('active', snaps[i]!==undefined && Math.abs(snaps[i]-v)<1);
+  });
+}
+
+const P_MIN=100000,P_MAX=600000;
+function pfill(v){ document.getElementById('price_fill').style.width=((v-P_MIN)/(P_MAX-P_MIN)*100)+'%'; }
+function onPrice(v){
+  document.getElementById('price_badge').textContent=v.toLocaleString('ko-KR')+'원';
+  pfill(v);
+  const rows=document.querySelectorAll('.tick-row');
+  const snaps=[100000,200000,300000,400000,500000,600000];
+  if(rows[0]) rows[0].querySelectorAll('.tick').forEach((el,i)=>{
+    el.classList.toggle('active', snaps[i]!==undefined && Math.abs(snaps[i]-v)<5001);
+  });
+  recalc();
+}
+function setPrice(v){ document.getElementById('price_sl').value=v; onPrice(v); }
+function onOcc(v){
+  const days=30;
+  document.getElementById('occ_badge').textContent=v+'%';
+  document.getElementById('nights_disp').textContent=Math.round(days*v/100);
+  ofill(v);
+  const rows=document.querySelectorAll('.tick-row');
+  const snaps=[0,25,50,75,100];
+  if(rows[1]) rows[1].querySelectorAll('.tick').forEach((el,i)=>{
+    el.classList.toggle('active', snaps[i]!==undefined && Math.abs(snaps[i]-v)<1);
+  });
+  recalc();
+}
+function setOcc(v)  { document.getElementById('occ_sl').value=v;   onOcc(v);   }
+
+/* ════════════════════ CALC ════════════════════ */
+function getP(){
+  const baseGuests = +document.getElementById('base_guests').value || 4;
+  const maxGuests  = +document.getElementById('max_guests').value  || 4;
+  const extraFee   = +document.getElementById('extra_fee').value   || 0;
+  const avgExtra   = +document.getElementById('avg_extra_guests').value || 0;
+  // 판매 객단가: 기본 + 평균 추가인원 × 1인당 추가비용
+  return{
+    price:       +document.getElementById('price_sl').value,
+    occ:         +document.getElementById('occ_sl').value,
+    baseGuests,
+    maxGuests,
+    extraFee,
+    avgExtra,
+    days:        30,
+    rent:        +document.getElementById('rent').value.replace(/,/g,''),
+    cleanR:      +document.getElementById('clean_rate').value/100,
+    utilR:       +document.getElementById('util_rate').value/100,
+    supplyR:     +document.getElementById('supply_rate').value/100,
+    deposit:     +document.getElementById('deposit').value.replace(/,/g,''),
+    setup:       +document.getElementById('setup_cost').value.replace(/,/g,''),
+  };
+}
+function calc(price,occ,p){
+  const nights=Math.round(p.days*occ/100);
+  // 기본 매출: 판매 객단가(기본+추가인원비) × 예약 박수
+  const baseRev = price * nights;
+  // 추가 수익: 평균 추가인원 × 추가비용 × 예약 박수
+  const skipExtra = document.getElementById('extra_skip')?.checked ?? true;
+  const extraRev = skipExtra ? 0 : p.avgExtra * p.extraFee;
+  const rev = baseRev + extraRev;
+  const c=rev*p.cleanR, u=rev*p.utilR, s=rev*p.supplyR;
+  const tot=p.rent+c+u+s;
+  const prf=rev-tot;
+  const pct=rev?prf/rev*100:0;
+  const includeDeposit = document.getElementById('include_deposit')?.checked ?? false;
+  const inv = includeDeposit ? p.deposit + p.setup : p.setup;
+  const be=prf>0?inv/prf:Infinity;
+  return{price,occ,nights,rev,baseRev,extraRev,prf,pct,rent:p.rent,c,u,s,tot,
+    rentPct:rev?p.rent/rev*100:0,cPct:p.cleanR*100,uPct:p.utilR*100,sPct:p.supplyR*100,
+    pp:price/p.baseGuests,be,inv};
+}
+const W=n=>Math.round(n).toLocaleString('ko-KR')+'원';
+const M=n=>Math.round(n/10000).toLocaleString('ko-KR')+'만원';
+const P=n=>n.toFixed(1)+'%';
+
+/* ════════════════════ RENDER ════════════════════ */
+function recalc(){
+  const p=getP(), r=calc(p.price,p.occ,p);
+  document.getElementById('nights_disp').textContent=r.nights;
+  document.getElementById('base_guests_disp').textContent=p.baseGuests;
+  document.getElementById('price_badge_sub').textContent=p.baseGuests+'인 기준';
+
+  // ── 섹션1: 기본 총 예상 수입
+  document.getElementById('base_rev_detail').textContent=
+    `${p.price.toLocaleString()}원 × ${r.nights}박`;
+  document.getElementById('base_per_person_disp').textContent=
+    Math.round(p.price / p.baseGuests).toLocaleString('ko-KR')+'원';
+  document.getElementById('base_per_person_basis').textContent=
+    `(기준 ${p.baseGuests}인)`;
+  document.getElementById('base_rev_total').textContent=
+    Math.round(r.baseRev).toLocaleString('ko-KR')+'원';
+
+  // ── 섹션2: 추가 총 예상 수입
+  const skipExtra = document.getElementById('extra_skip')?.checked ?? true;
+  if(!skipExtra){
+    document.getElementById('extra_rev_detail').textContent=
+      `${p.extraFee.toLocaleString()}원 × ${p.avgExtra}명`;
+    document.getElementById('extra_rev_total').textContent=
+      Math.round(r.extraRev).toLocaleString('ko-KR')+'원';
+  } else {
+    document.getElementById('extra_rev_detail').textContent='—';
+    document.getElementById('extra_rev_total').textContent='0원';
+  }
+
+  // ── 월세 비율 (합계 총 예상 수익 대비)
+  const rentPct = r.rev > 0 ? (p.rent / r.rev * 100) : 0;
+  document.getElementById('rent_pct_badge').textContent = '수익 대비 ' + rentPct.toFixed(1) + '%';
+
+  // ── 합계
+  document.getElementById('total_rev_detail').textContent=
+    `기본 ${Math.round(r.baseRev).toLocaleString()}원 + 추가 ${Math.round(r.extraRev).toLocaleString()}원`;
+  document.getElementById('total_rev_grand').textContent=
+    Math.round(r.rev).toLocaleString('ko-KR')+'원';
+  document.getElementById('total_rev_sub').textContent=
+    `월 ${r.nights}박 기준`;
+
+  // 총 투자비용 표시
+  const includeDeposit = document.getElementById('include_deposit')?.checked ?? false;
+  const deposit = +(document.getElementById('deposit').value.replace(/,/g,'')) || 0;
+  const setup = +(document.getElementById('setup_cost').value.replace(/,/g,'')) || 0;
+  const totalInv = includeDeposit ? deposit + setup : setup;
+  document.getElementById('total_inv_disp').textContent = totalInv.toLocaleString('ko-KR') + '원';
+  document.getElementById('total_inv_detail').textContent = includeDeposit
+    ? `보증금 ${deposit.toLocaleString()}원 + 세팅비 ${setup.toLocaleString()}원`
+    : '세팅비용만 포함 (보증금 제외)';
+  rChips(r); rKPI(r); rBE(r); rBars(r); rMtx(p);
+}
+
+function rChips(r){
+  document.getElementById('chips_row').innerHTML=`
+    <div class="chip">기본 객단가 <b>${r.price.toLocaleString()}원</b></div>
+    <div class="chip">OCC <b>${r.occ}%</b></div>
+    <div class="chip">예약 <b>${r.nights}박/월</b></div>
+    <div class="chip">투자비용 <b>${Math.round(r.inv).toLocaleString()}원</b></div>
+    ${r.extraRev>0?`<div class="chip">추가 수익 <b>${Math.round(r.extraRev).toLocaleString()}원</b></div>`:''}`;
+}
+function rKPI(r){
+  const pc=r.pct>=45?'var(--gr)':r.pct>=30?'var(--ac2)':r.pct>=15?'var(--am)':'var(--rd)';
+  const pcBg=r.pct>=45?'var(--grd)':r.pct>=30?'var(--acg)':r.pct>=15?'var(--amd)':'var(--rdd)';
+  const costRow=(label, val, pct)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--b1)">
+      <span style="font-size:14px;color:var(--t2)">${label}</span>
+      <span style="font-size:14px;font-weight:600;color:var(--t1)">${W(val)} <span style="font-size:12px;font-weight:400;color:var(--t3)">(${pct.toFixed(1)}%)</span></span>
+    </div>`;
+  document.getElementById('kpi_grid').innerHTML=`
+    <div class="kpi kpi-ac" style="padding-bottom:4px">
+      <div class="kpi-lbl" style="margin-bottom:8px">💰 월 총매출</div>
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="kpi-val">${M(r.rev)}</div>
+        <div class="kpi-sub">${W(r.rev)}</div>
+      </div>
+      <div style="border-top:1px solid rgba(232,101,10,.15);padding-top:4px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--b1)">
+          <span style="font-size:14px;color:var(--t2)">🏠 기본 객단가 수입</span>
+          <span style="font-size:14px;font-weight:600;color:var(--t1)">${W(r.baseRev)}</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0">
+          <span style="font-size:14px;color:var(--t2)">➕ 추가 인원 수입</span>
+          <span style="font-size:14px;font-weight:600;color:var(--t1)">${r.extraRev>0?W(r.extraRev):'—'}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi kpi-rd" style="padding-bottom:4px">
+      <div class="kpi-lbl" style="margin-bottom:8px">💸 총 비용</div>
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="kpi-val">${M(r.tot)}</div>
+        <div class="kpi-sub">${W(r.tot)}</div>
+      </div>
+      <div style="border-top:1px solid var(--b1);padding-top:4px">
+        ${costRow('🏠 월세', r.rent, r.rentPct)}
+        ${costRow('🧹 청소비', r.c, r.cPct)}
+        ${costRow('⚡ 공과금', r.u, r.uPct)}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0">
+          <span style="font-size:14px;color:var(--t2)">🛒 소모품</span>
+          <span style="font-size:14px;font-weight:600;color:var(--t1)">${W(r.s)} <span style="font-size:12px;font-weight:400;color:var(--t3)">(${r.sPct.toFixed(1)}%)</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi kpi-gr">
+      <div class="kpi-lbl">✅ 월 순수익</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <div class="kpi-val">${M(r.prf)}</div>
+          <div class="kpi-sub">${W(r.prf)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;background:${pcBg};border:1px solid ${pc};border-radius:999px;padding:3px 12px">
+          <span style="font-size:12px;color:var(--t2)">수익률</span>
+          <span style="font-size:18px;font-weight:800;color:${pc}">${P(r.pct)}</span>
+        </div>
+      </div>
+    </div>`;
+}
+function rBE(r){
+  const bt=isFinite(r.be)?r.be.toFixed(2)+'개월':'∞';
+  const by=isFinite(r.be)?' ≈ '+(r.be/12).toFixed(1)+'년':'';
+  document.getElementById('be_row').innerHTML=`
+    <div class="be-icon">⏱️</div>
+    <div><div class="be-lbl">손익 분기점</div>
+      <div class="be-val">${bt}</div>
+      <div class="be-sub">총투자 ${W(r.inv)}${by}</div></div>`;
+}
+const SEGS=[
+  {k:'rent',l:'월세',  c:'#e8650a'},
+  {k:'c',   l:'청소비',c:'#34d399'},
+  {k:'u',   l:'공과금',c:'#60a5fa'},
+  {k:'s',   l:'소모품',c:'#fbbf24'},
+  {k:'prf', l:'순수익',c:'#16a34a'},
+];
+function rBars(r){
+  const tot=r.rev||1;
+  document.getElementById('sbar').innerHTML=SEGS.map(s=>{
+    const p=Math.max(0,r[s.k]/tot*100);
+    return`<div class="sbar-seg" style="width:${p}%;background:${s.c}"></div>`;
+  }).join('');
+  document.getElementById('legend').innerHTML=SEGS.map(s=>{
+    const p=Math.max(0,r[s.k]/tot*100);
+    return`<div class="leg-row">
+      <div class="leg-dot" style="background:${s.c}"></div>
+      <div class="leg-name">${s.l}</div>
+      <div class="leg-bar"><div class="leg-fill" style="width:${p}%;background:${s.c}"></div></div>
+      <div class="leg-pct" style="color:${s.c}">${p.toFixed(1)}%</div>
+      <div class="leg-amt">${Math.round(r[s.k]).toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
+function rMtx(p){
+  const head=`<thead><tr><th>객단가 \\ OCC</th>${OCCS.map(o=>`<th>${o}%</th>`).join('')}</tr></thead>`;
+  let body='<tbody>';
+  PRICES.forEach(price=>{
+    const rSel=Math.abs(price-p.price)<5000;
+    body+=`<tr><td>${price.toLocaleString()}원</td>`;
+    OCCS.forEach(occ=>{
+      const r=calc(price,occ,p);
+      const isSel=rSel&&Math.abs(occ-p.occ)<1;
+      let main,sub,cls;
+      if(mxMode==='profit'){
+        main=M(r.prf);sub=P(r.pct);
+        cls=r.pct>=50?'c-gr':r.pct>=40?'c-li':r.pct>=28?'c-am':'c-rd';
+      }else if(mxMode==='revenue'){
+        main=M(r.rev);sub=r.nights+'박';cls='c-bl';
+      }else if(mxMode==='break'){
+        main=isFinite(r.be)?r.be.toFixed(1)+'개월':'∞';
+        sub=isFinite(r.be)?(r.be/12).toFixed(1)+'년':'-';
+        cls=r.be<=12?'c-gr':r.be<=24?'c-li':r.be<=36?'c-am':'c-rd';
+      }else{
+        main=P(r.pct);sub=M(r.prf);
+        cls=r.pct>=50?'c-gr':r.pct>=40?'c-li':r.pct>=28?'c-am':'c-rd';
+      }
+      body+=`<td><div class="ci ${cls}${isSel?' sel':''}">
+        <div class="ci-main">${main}</div><div class="ci-sub">${sub}</div>
+      </div></td>`;
+    });
+    body+='</tr>';
+  });
+  body+='</tbody>';
+  document.getElementById('mtx').innerHTML=head+body;
+}
+function sw(mode,btn){
+  mxMode=mode;
+  document.querySelectorAll('.tab-it').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  recalc();
+}
+
+/* ════════════════════ EXTRA TOGGLE ════════════════════ */
+function toggleExtra(cb){
+  document.getElementById('extra_body').style.display = cb.checked ? 'none' : 'block';
+  recalc();
+}
+
+/* ════════════════════ RESET ════════════════════ */
+function resetAll(){
+  setPrice(400000); setOcc(70);
+  const cb=document.getElementById('extra_skip'); cb.checked=true; toggleExtra(cb);
+  document.getElementById('base_guests').value='4';
+  document.getElementById('max_guests').value='4';
+  document.getElementById('extra_fee').value='20000';
+  document.getElementById('avg_extra_guests').value='1';
+  document.getElementById('rent').value='1,500,000';
+  document.getElementById('clean_rate').value='10';
+  document.getElementById('util_rate').value='3';
+  document.getElementById('supply_rate').value='6';
+  document.getElementById('deposit').value='30,000,000';
+  document.getElementById('setup_cost').value='20,000,000';
+  recalc(); toast('↺ 초기화 완료');
+}
+
+/* ════════════════════ NOTION ════════════════════ */
+function buildMD(){
+  const p=getP(),r=calc(p.price,p.occ,p);
+  const now=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'});
+  let md=`# 🏠 숙박업 수익 분석 리포트\n> 생성일: ${now} | 객단가: ${r.price.toLocaleString()}원 | OCC: ${r.occ}% | ${p.guests}인 기준\n\n`;
+  md+=`## 📊 핵심 지표\n\n| 항목 | 값 |\n|---|---|\n`;
+  md+=`| 💰 월 총매출 | ${W(r.rev)} |\n| ✅ 월 순수익 | ${W(r.prf)} |\n`;
+  md+=`| 📈 수익률 | ${P(r.pct)} |\n| 🏢 월세 | ${W(r.rent)} (${P(r.rentPct)}) |\n`;
+  md+=`| 🧹 청소비 | ${W(r.c)} (${P(r.cPct)}) |\n| ⚡ 공과금 | ${W(r.u)} (${P(r.uPct)}) |\n`;
+  md+=`| 🛒 소모품 | ${W(r.s)} (${P(r.sPct)}) |\n`;
+  md+=`| ⏱️ 손익분기 | ${isFinite(r.be)?r.be.toFixed(2)+'개월':'∞'} |\n| 💼 총 투자금 | ${W(r.inv)} |\n\n`;
+  md+=`## 🗂️ 시나리오 매트릭스 (순수익)\n\n`;
+  md+=`| 객단가 \\ OCC | ${OCCS.map(o=>`OCC ${o}%`).join(' | ')} |\n`;
+  md+=`|${Array(OCCS.length+1).fill('---').join('|')}|\n`;
+  PRICES.forEach(price=>{
+    const cells=OCCS.map(occ=>{const row=calc(price,occ,p);return`${M(row.prf)} (${P(row.pct)})`;});
+    md+=`| ${price.toLocaleString()}원 | ${cells.join(' | ')} |\n`;
+  });
+  return md;
+}
+function openNotionModal(){
+  document.getElementById('mo_code').textContent=buildMD();
+  document.getElementById('mo_notion').classList.add('open');
+}
+function closeMo(){ document.getElementById('mo_notion').classList.remove('open'); }
+function moOut(e){ if(e.target===document.getElementById('mo_notion'))closeMo(); }
+function copyNotion(){
+  navigator.clipboard.writeText(document.getElementById('mo_code').textContent)
+    .then(()=>{toast('✅ 복사 완료! Notion에 붙여넣기 하세요');closeMo();})
+    .catch(()=>toast('⚠️ 드래그로 직접 복사해 주세요'));
+}
+
+/* ════════════════════ TOAST ════════════════════ */
+let _tt;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+/* ════════════════════ FORMAT INPUT ════════════════════ */
+function fmtInput(el){
+  const raw = el.value.replace(/,/g,'').replace(/[^0-9]/g,'');
+  if(raw === '') return;
+  el.value = (+raw).toLocaleString('ko-KR');
+}
+
+/* ════════════════════ INIT ════════════════════ */
+window.addEventListener('DOMContentLoaded',()=>{
+  pfill(200000); ofill(70); recalc();
+  // max_guests >= base_guests 보정
+  document.getElementById('base_guests').addEventListener('change', function(){
+    const b=+this.value, mx=document.getElementById('max_guests');
+    if(+mx.value < b) mx.value = b;
+    recalc();
+  });
+});
+</script>
+</body>
+</html>
