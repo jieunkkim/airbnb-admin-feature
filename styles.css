@@ -36,6 +36,7 @@ body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg);color:v
 .hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px}
 .pg-title{font-size:clamp(1.7rem,4vw,2.5rem);font-weight:800;letter-spacing:-1.2px;line-height:1.15}
 .pg-title span{background:linear-gradient(135deg,var(--ac),var(--am));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.ver-badge{font-size:11px;font-weight:500;color:var(--t3);letter-spacing:0;background:none;-webkit-text-fill-color:var(--t3);vertical-align:middle;margin-left:8px;opacity:.85}
 .pg-sub{margin-top:7px;font-size:14px;color:var(--t2)}
 .hdr-btns{display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}
 

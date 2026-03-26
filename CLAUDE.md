@@ -21,14 +21,22 @@
 4. 컴파일, 빌드 단계 없음
 
 ### 파일 명명 및 버전 관리
-새 도구를 만들 때:
+
+**파일명**: 모두 `tools/` 폴더에 `kebab-case.html` 형식 (버전 번호 제외)
+
+**버전 관리**: 버전과 릴리스 날짜는 페이지 타이틀 옆에 배지(`v2 · 2026-03-26`) 형태로 표시
+```html
+<h1 class="pg-title">도구명 <span>기능</span><span class="ver-badge">v2 · 2026-03-26</span></h1>
 ```
-tools/new-tool-name_v1.html     # 모두 tools/ 폴더에, kebab-case_vX 형식
-```
-그 후 `index.html`의 `<!-- TOOLS -->` 섹션에 새 카드를 추가합니다:
+
+**버전 증가 기준**: **신규 기능 추가 시에만**
+- 버그 픽스, 리팩토링, 스타일 수정 등은 버전 번호 변경 안 함
+- 신규 기능 추가 → 마이너 버전 증가 (v1 → v2, v2 → v3 등)
+
+새 도구 추가 시 `index.html`의 `<!-- TOOLS -->` 섹션에 카드 추가:
 ```html
 <div style="animation:fuv .42s ease both;animation-delay:.XXs">
-  <a href="tools/new-tool-name_v1.html" class="tool-card" aria-label="도구명">
+  <a href="tools/new-tool-name.html" class="tool-card" aria-label="도구명">
     <div class="tool-icon">🎯</div>
     <div class="tool-title">한글 도구명</div>
     <div class="tool-sub">English Tool Name</div>
@@ -43,7 +51,7 @@ tools/new-tool-name_v1.html     # 모두 tools/ 폴더에, kebab-case_vX 형식
 
 ### 허브 페이지 (`index.html`)
 - 진입점: 도구 카드 모음 (현재 3개: 💸 ⚡ 🛏️)
-- 현재 링크: `tools/airbnb-revenue-calculator_v2.html`, `tools/electrical-work-estimate-calculator_v1.html`, `tools/bedding-estimate-calculator_v2.html`
+- 현재 링크: `tools/airbnb-revenue-calculator.html`, `tools/electrical-work-estimate-calculator.html`, `tools/bedding-estimate-calculator.html`
 - 확장 가능: 새 도구 추가 시 카드 추가 (`tools/` 폴더에 파일 위치)
 - 레이아웃: 최대 너비 560px, 중앙 정렬, fade-up 애니메이션
 - JavaScript 로직 없음 (순수 네비게이션)
@@ -57,9 +65,9 @@ tools/new-tool-name_v1.html     # 모두 tools/ 폴더에, kebab-case_vX 형식
 - **인쇄 미디어 쿼리**: `.bg-glow`, `.hdr-btns`, `.del-btn`, `.add-area`, `#toast` 숨김
 
 **도구별 오버라이드** (각 HTML의 `<style>` 블록):
-- `airbnb-revenue-calculator_v2.html`: `body{font-size:18px}`, `.wrap{max-width:1080px}`, 슬라이더 스타일, KPI 카드, 매트릭스 테이블, 모달
-- `electrical-work-estimate-calculator_v1.html`: `.input-grid{minmax:200px}`, textarea, `.summary-grid`, `.section-toggle`, `.mat-tbl`, `.cat-badge` (자재 카테고리)
-- `bedding-estimate-calculator_v2.html`: `.input-grid{minmax:150px}`, `.derived-val` (자동 계산 필드), `.bed-chips`, `.size-badge`
+- `airbnb-revenue-calculator.html`: `body{font-size:18px}`, `.wrap{max-width:1080px}`, 슬라이더 스타일, KPI 카드, 매트릭스 테이블, 모달
+- `electrical-work-estimate-calculator.html`: `.input-grid{minmax:200px}`, textarea, `.summary-grid`, `.section-toggle`, `.mat-tbl`, `.cat-badge` (자재 카테고리)
+- `bedding-estimate-calculator.html`: `.input-grid{minmax:150px}`, `.derived-val` (자동 계산 필드), `.bed-chips`, `.size-badge`
 
 ### 각 도구의 패턴 (단일 페이지 앱)
 ```
@@ -181,10 +189,10 @@ style: extract colors to shared design tokens
 ├── index.html                                    # 허브 (진입점, 도구 카드 모음)
 ├── styles.css                                    # 공유 디자인 시스템 (모든 도구가 상속)
 ├── tools/
-│   ├── airbnb-revenue-calculator_v2.html         # 도구: 수익/이익/KPI 분석
-│   ├── electrical-work-estimate-calculator_v1.html # 도구: 공사 견적 + 자재
-│   ├── bedding-estimate-calculator_v2.html       # 도구: 자동 수량 계산
-│   └── [new-tool-name_v1.html]                   # 새 도구 추가 시 여기 (kebab-case_vX 형식)
+│   ├── airbnb-revenue-calculator.html            # 도구: 수익/이익/KPI 분석 (v2)
+│   ├── electrical-work-estimate-calculator.html  # 도구: 공사 견적 + 자재 (v1)
+│   ├── bedding-estimate-calculator.html          # 도구: 자동 수량 계산 (v2)
+│   └── [new-tool-name.html]                      # 새 도구 추가 시 여기 (kebab-case 형식)
 ├── .claude/
 │   └── settings.json                            # 프로젝트 설정 (한국어 언어 설정)
 ├── rules/
@@ -194,8 +202,9 @@ style: extract colors to shared design tokens
 ```
 
 **새 도구 추가 프로세스:**
-1. `tools/new-tool-name_vX.html` 생성 (styles.css 링크 + 고유 스타일)
-2. `index.html`의 `<!-- TOOLS -->` 섹션에 카드 추가 (href: `tools/new-tool-name_vX.html`)
+1. `tools/new-tool-name.html` 생성 (styles.css 링크 + 고유 스타일)
+   - `<h1 class="pg-title">도구명 <span>기능</span><span class="ver-badge">v1 · YYYY-MM-DD</span></h1>`
+2. `index.html`의 `<!-- TOOLS -->` 섹션에 카드 추가 (href: `tools/new-tool-name.html`)
 3. `.claude/settings.json`에 기능 상태 필요시 추가
 4. Git 커밋 (`feat: add new-tool-name to tools/`)
 5. 릴리스 태그: `v1.1`, `v1.2` 등
