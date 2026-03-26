@@ -74,7 +74,8 @@ input[type=range]::-moz-range-thumb{
 
 /* ════ MAIN GRID ════ */
 .main-grid{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start}
-.left-col{position:sticky;top:20px}
+.left-col{position:sticky;top:20px;min-width:0}
+.right-col{min-width:0}
 @media(max-width:860px){.main-grid{grid-template-columns:1fr}}
 
 /* ── CARD ── */
@@ -249,6 +250,7 @@ table tbody tr:hover td{background:rgba(255,255,255,.018)}
 @media(max-width:860px){.hdr{flex-direction:column;align-items:flex-start}}
 @media(max-width:480px){
   .kpi-grid{grid-template-columns:1fr 1fr}
+  .kpi-gr{grid-column:1/-1}
   .kpi-val{font-size:17px}
   .wrap{padding:20px 14px 60px}
   .slider-hero{padding:20px 16px}
@@ -259,6 +261,8 @@ table tbody tr:hover td{background:rgba(255,255,255,.018)}
 <body>
 <div class="bg-glow"></div>
 <div class="wrap">
+
+<a href="../index.html" class="back-nav">← 홈으로 돌아가기</a>
 
 <!-- HEADER -->
 <div class="hdr fuv">
