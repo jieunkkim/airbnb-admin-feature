@@ -23,12 +23,12 @@
 ### 파일 명명 및 버전 관리
 새 도구를 만들 때:
 ```
-new-tool-name_v1.html     # kebab-case, 버전 표시 필수
+tools/new-tool-name_v1.html     # 모두 tools/ 폴더에, kebab-case_vX 형식
 ```
-그 후 `index.html`의 도구 섹션에 새 카드를 추가하여 링크합니다:
+그 후 `index.html`의 `<!-- TOOLS -->` 섹션에 새 카드를 추가합니다:
 ```html
 <div style="animation:fuv .42s ease both;animation-delay:.XXs">
-  <a href="new-tool-name_v1.html" class="tool-card" aria-label="도구명">
+  <a href="tools/new-tool-name_v1.html" class="tool-card" aria-label="도구명">
     <div class="tool-icon">🎯</div>
     <div class="tool-title">한글 도구명</div>
     <div class="tool-sub">English Tool Name</div>
@@ -37,14 +37,14 @@ new-tool-name_v1.html     # kebab-case, 버전 표시 필수
   </a>
 </div>
 ```
-(animation-delay를 `.05s`, `.1s`, `.16s` 등으로 순차 증가하여 fade-up 효과 유지)
+(animation-delay를 `.05s`, `.1s`, `.16s`, `.22s` 등으로 순차 증가하여 fade-up 효과 유지)
 
 ## 아키텍처
 
 ### 허브 페이지 (`index.html`)
 - 진입점: 도구 카드 모음 (현재 3개: 💸 ⚡ 🛏️)
-- 현재 링크: `airbnb-revenue-calculator_v2.html`, `electrical-work-estimate-calculator_v1.html`, `bedding-estimate-calculator_v2.html`
-- 확장 가능: 새 도구 추가 시 카드 추가 (HTML 구조 참고)
+- 현재 링크: `tools/airbnb-revenue-calculator_v2.html`, `tools/electrical-work-estimate-calculator_v1.html`, `tools/bedding-estimate-calculator_v2.html`
+- 확장 가능: 새 도구 추가 시 카드 추가 (`tools/` 폴더에 파일 위치)
 - 레이아웃: 최대 너비 560px, 중앙 정렬, fade-up 애니메이션
 - JavaScript 로직 없음 (순수 네비게이션)
 - 스타일: `styles.css` + index.html 고유 스타일 (`.hub-wrap`, `.tool-card` 등)
@@ -179,11 +179,12 @@ style: extract colors to shared design tokens
 ```
 .
 ├── index.html                                    # 허브 (진입점, 도구 카드 모음)
-├── airbnb-revenue-calculator_v2.html             # 도구: 수익/이익/KPI 분석
-├── electrical-work-estimate-calculator_v1.html   # 도구: 공사 견적 + 자재
-├── bedding-estimate-calculator_v2.html           # 도구: 자동 수량 계산
-├── [new-tool-name_v1.html]                       # 새 도구 추가 시 여기 (kebab-case_vX 형식)
 ├── styles.css                                    # 공유 디자인 시스템 (모든 도구가 상속)
+├── tools/
+│   ├── airbnb-revenue-calculator_v2.html         # 도구: 수익/이익/KPI 분석
+│   ├── electrical-work-estimate-calculator_v1.html # 도구: 공사 견적 + 자재
+│   ├── bedding-estimate-calculator_v2.html       # 도구: 자동 수량 계산
+│   └── [new-tool-name_v1.html]                   # 새 도구 추가 시 여기 (kebab-case_vX 형식)
 ├── .claude/
 │   └── settings.json                            # 프로젝트 설정 (한국어 언어 설정)
 ├── rules/
@@ -193,10 +194,10 @@ style: extract colors to shared design tokens
 ```
 
 **새 도구 추가 프로세스:**
-1. `new-tool-name_vX.html` 생성 (styles.css 링크 + 고유 스타일)
-2. `index.html`에 도구 카드 추가
+1. `tools/new-tool-name_vX.html` 생성 (styles.css 링크 + 고유 스타일)
+2. `index.html`의 `<!-- TOOLS -->` 섹션에 카드 추가 (href: `tools/new-tool-name_vX.html`)
 3. `.claude/settings.json`에 기능 상태 필요시 추가
-4. Git 커밋 (`feat: add new-tool-name`)
+4. Git 커밋 (`feat: add new-tool-name to tools/`)
 5. 릴리스 태그: `v1.1`, `v1.2` 등
 
 ## 디버깅 팁
