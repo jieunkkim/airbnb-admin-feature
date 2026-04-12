@@ -1307,10 +1307,17 @@
       const body = document.getElementById('classifyBody');
       if (!body) return;
 
+      // 모든 카테고리 수집 (기본 + 사용자 정의)
+      const allCategories = new Set([
+        ...CATEGORIES,
+        ...state.rules.map(r => r.category).filter(c => c !== null)
+      ]);
+      const sortedCategories = [...allCategories].sort();
+
       // filterCategory select 초기화 (한 번만)
       const catSel = document.getElementById('filterCategory');
       if (catSel && catSel.options.length === 1) {
-        CATEGORIES.forEach(cat => {
+        sortedCategories.forEach(cat => {
           const opt = document.createElement('option');
           opt.value = cat;
           opt.textContent = cat;
@@ -1327,7 +1334,7 @@
       function renderTransactionRow(tx, idx) {
         const tr = document.createElement('tr');
         const opts = `<option value="">(미분류)</option>` +
-          CATEGORIES.map(cat =>
+          sortedCategories.map(cat =>
             `<option value="${cat}" ${tx.category === cat ? 'selected' : ''}>${cat}</option>`
           ).join('');
 
