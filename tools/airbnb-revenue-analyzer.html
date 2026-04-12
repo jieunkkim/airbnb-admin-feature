@@ -391,7 +391,7 @@
 
           <div class="ig-field">
             <label>거래 데이터</label>
-            <textarea id="rawInput" rows="7" placeholder="거래일자&#9;적요&#9;금액&#10;2026-01-01&#9;Airbnb 수입&#9;500000&#10;2026-01-02&#9;청소용품 구매&#9;50000"></textarea>
+            <textarea id="rawInput" rows="7" placeholder="거래일자&#9;내용&#9;금액&#10;2026-01-01&#9;Airbnb 수입&#9;500000&#10;2026-01-02&#9;청소용품 구매&#9;50000"></textarea>
           </div>
 
           <div style="display:flex;gap:8px;margin-top:16px">
@@ -556,6 +556,12 @@
           <div class="card-ico" style="background:rgba(217,119,6,.1)">⚙️</div>
           <span class="card-ttl">분류 결과</span>
         </div>
+
+        <div style="display:flex;gap:8px;padding:16px 22px 0">
+          <button class="notion-btn primary" onclick="completeStep3()">제외 관리로 이동 →</button>
+          <button class="notion-btn" onclick="switchStep(1)">← 규칙 수정</button>
+        </div>
+
         <div class="card-body" style="padding-bottom:0">
           <p style="font-size:13px;color:var(--t2);margin-bottom:14px;line-height:1.6">
             자동 분류된 결과를 확인하고, 드롭다운으로 카테고리를 직접 변경할 수 있습니다.
@@ -598,10 +604,6 @@
               <tbody id="classifyBody"></tbody>
             </table>
           </div>
-        </div>
-        <div style="display:flex;gap:8px;padding:16px 22px 22px">
-          <button class="notion-btn primary" onclick="completeStep3()">제외 관리로 이동 →</button>
-          <button class="notion-btn" onclick="switchStep(1)">← 규칙 수정</button>
         </div>
       </div>
 
