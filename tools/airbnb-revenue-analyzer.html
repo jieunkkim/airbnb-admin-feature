@@ -415,7 +415,7 @@
 
           <div class="input-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px 18px">
             <div class="ig-field">
-              <label>거래 날짜 <span style="color:var(--rd)">*</span></label>
+              <label>거래 일시 <span style="color:var(--rd)">*</span></label>
               <select id="colDate" onchange="updateMapping()"></select>
             </div>
             <div class="ig-field">
@@ -841,13 +841,50 @@
         });
       });
 
-      const lowerHeaders = headers.map(h => h.toLowerCase());
-      if (lowerHeaders.some(h => h.includes('날짜') || h.includes('date'))) {
-        document.getElementById('colDate').value = lowerHeaders.findIndex(h => h.includes('날짜') || h.includes('date'));
+      // 유사성 점수 계산 함수
+      function calculateSimilarity(headerText, keywords) {
+        const lower = headerText.toLowerCase();
+        let maxScore = 0;
+
+        for (const kw of keywords) {
+          const kwLower = kw.toLowerCase();
+          if (lower === kwLower) {
+            maxScore = 100;
+            break;
+          }
+          if (lower.includes(kwLower) || kwLower.includes(lower)) {
+            maxScore = Math.max(maxScore, 80);
+          }
+        }
+
+        return maxScore;
       }
-      if (lowerHeaders.some(h => h.includes('금액') || h.includes('amount'))) {
-        document.getElementById('colAmount').value = lowerHeaders.findIndex(h => h.includes('금액') || h.includes('amount'));
-      }
+
+      // 자동 매핑 설정
+      const columnConfig = {
+        colDate: ['날짜', 'date', '일자', '거래날짜', '일시'],
+        colDesc: ['내용', 'description', 'desc', '거래내용', '거래 내용', '적요'],
+        colAmount: ['금액', 'amount', '거래금액', '거래 금액', '합계'],
+        colMemo: ['메모', 'note', '비고', '기타', 'memo']
+      };
+
+      // 각 컬럼에 대해 가장 유사한 헤더 찾기
+      Object.entries(columnConfig).forEach(([colId, keywords]) => {
+        let bestMatch = -1;
+        let bestScore = 0;
+
+        headers.forEach((h, i) => {
+          const score = calculateSimilarity(h, keywords);
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = i;
+          }
+        });
+
+        if (bestMatch >= 0 && bestScore > 0) {
+          document.getElementById(colId).value = bestMatch;
+        }
+      });
 
       document.getElementById('mapCard').style.display = 'block';
       document.getElementById('previewCard').style.display = 'none';
