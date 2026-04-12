@@ -725,9 +725,7 @@
         <div class="mo-body">
           <div class="ig-field">
             <label>카테고리</label>
-            <select id="mo_category" onchange="updateCategoryInfo()">
-              <option value="">선택...</option>
-            </select>
+            <input type="text" id="mo_category" placeholder="새로운 카테고리명 입력" style="font-size:13px;padding:10px;border:1px solid var(--b2);border-radius:var(--r4);font-family:'DM Sans',sans-serif">
           </div>
           <div class="ig-field">
             <label>키워드 (쉼표로 구분, 예: airbnb, 수익, 오늘의 수익)</label>
@@ -774,6 +772,29 @@
       { category: '세금', keywords: ['세금', 'tax'], isDefault: true },
       { category: '소모품', keywords: ['소모', '용품'], isDefault: true }
     ];
+
+    // 카테고리 배지 색상 (기본 카테고리 순서대로)
+    const CATEGORY_COLORS = [
+      { bg: 'rgba(22, 163, 74, 0.1)', fg: '#16a34a' },    // 수입 (green)
+      { bg: 'rgba(37, 99, 235, 0.1)', fg: '#2563eb' },    // 월세 (blue)
+      { bg: 'rgba(217, 119, 6, 0.1)', fg: '#d97706' },    // 청소비 (amber)
+      { bg: 'rgba(232, 101, 10, 0.1)', fg: '#e8650a' },   // 관리비 (orange)
+      { bg: 'rgba(168, 85, 247, 0.1)', fg: '#a855f7' },   // 시설투자비 (purple)
+      { bg: 'rgba(220, 38, 38, 0.1)', fg: '#dc2626' },    // 세금 (red)
+      { bg: 'rgba(22, 163, 74, 0.1)', fg: '#16a34a' },    // 소모품 (green)
+      { bg: 'var(--s3)', fg: 'var(--t2)' }                // 기타 (neutral)
+    ];
+
+    // 카테고리별 색상 조회 함수
+    function getCategoryColor(category) {
+      const idx = CATEGORIES.indexOf(category);
+      if (idx >= 0) {
+        return CATEGORY_COLORS[idx];
+      }
+      // 새로 추가된 카테고리: 기본 카테고리 색상을 순환적으로 사용
+      const hash = category.charCodeAt(0) + category.length;
+      return CATEGORY_COLORS[hash % (CATEGORY_COLORS.length - 1)];
+    }
 
     /* ── UI NAVIGATION ── */
     function switchStep(step) {
@@ -978,7 +999,7 @@
           desc,
           amount,
           memo,
-          category: '기타',
+          category: null,
           ruleMatched: null,
           excluded: false
         });
@@ -1067,13 +1088,15 @@
 
     function renderRules() {
       const body = document.getElementById('rulesBody');
-      body.innerHTML = state.rules.map((r, idx) => `
+      body.innerHTML = state.rules.map((r, idx) => {
+        const color = getCategoryColor(r.category);
+        return `
         <tr class="${!r.isActive ? 'disabled-row' : ''}">
           <td style="text-align:center;padding:8px">
             <input type="checkbox" ${r.isActive ? 'checked' : ''} onchange="toggleCategory('${r.category}')"
                    style="width:16px;height:16px;accent-color:var(--ac);cursor:pointer">
           </td>
-          <td style="padding:8px"><span class="cat-badge cat-${r.category}">${r.category}</span></td>
+          <td style="padding:8px"><span class="cat-badge" style="background:${color.bg};color:${color.fg}">${r.category}</span></td>
           <td style="padding:8px;text-align:left;font-weight:500;color:var(--t1)">
             ${r.keywords.map(k => `<span style="display:inline-block;background:var(--s2);padding:4px 8px;border-radius:4px;margin-right:6px;font-size:12px">${esc(k)}</span>`).join('')}
           </td>
@@ -1082,7 +1105,8 @@
             ${!r.isDefault ? `<button class="del-btn" onclick="deleteRule('${r.category}')" title="삭제">✕</button>` : ''}
           </td>
         </tr>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function openRuleModal(category) {
@@ -1090,34 +1114,36 @@
       editingCategory = category || null;
 
       document.getElementById('mo_title').textContent = rule ? `${rule.category} 수정` : '규칙 추가';
-      document.getElementById('mo_category').value = rule ? rule.category : '';
-      document.getElementById('mo_keywords').value = rule ? rule.keywords.join(', ') : '';
       document.getElementById('mo_warn').style.display = 'none';
       document.getElementById('mo_warn').textContent = '';
-      document.getElementById('mo_info').textContent = '';
 
-      // 카테고리 옵션
-      const catSel = document.getElementById('mo_category');
-      catSel.innerHTML = '<option value="">선택...</option>';
-      CATEGORIES.forEach(cat => {
-        // 이미 있는 카테고리는 편집 모드가 아닐 때만 선택 가능
-        const existing = state.rules.find(r => r.category === cat);
-        if (!existing || rule?.category === cat) {
-          const opt = document.createElement('option');
-          opt.value = cat;
-          opt.textContent = cat;
-          catSel.appendChild(opt);
-        }
-      });
+      const catInput = document.getElementById('mo_category');
+      const keywordsInput = document.getElementById('mo_keywords');
+
       if (rule) {
-        catSel.value = rule.category;
-        catSel.disabled = true;  // 편집 중에는 카테고리 변경 불가
+        // 편집 모드
+        catInput.value = rule.category;
+        catInput.readOnly = true;
+        catInput.style.backgroundColor = 'var(--s2)';
+        keywordsInput.value = rule.keywords.join(', ');
+        keywordsInput.readOnly = false;
+        keywordsInput.style.backgroundColor = '';
+        keywordsInput.placeholder = '각 줄에 하나씩 또는 쉼표로 구분';
+        document.getElementById('mo_info').textContent = '편집 모드에서는 카테고리를 변경할 수 없습니다';
       } else {
-        catSel.disabled = false;
+        // 추가 모드
+        catInput.value = '';
+        catInput.readOnly = false;
+        catInput.style.backgroundColor = '';
+        keywordsInput.value = '';
+        keywordsInput.readOnly = false;
+        keywordsInput.style.backgroundColor = '';
+        keywordsInput.placeholder = '각 줄에 하나씩 또는 쉼표로 구분';
+        document.getElementById('mo_info').textContent = '';
       }
 
       document.getElementById('mo_rule').classList.add('open');
-      document.getElementById('mo_keywords').focus();
+      catInput.focus();
     }
 
     function closeRuleModal() {
@@ -1140,13 +1166,14 @@
     }
 
     function saveRule() {
-      const category = document.getElementById('mo_category').value;
+      const category = document.getElementById('mo_category').value.trim();
       const keywordsText = document.getElementById('mo_keywords').value.trim();
 
       if (!category) {
-        showWarn('카테고리를 선택하세요');
+        showWarn('카테고리명을 입력하세요');
         return;
       }
+
       if (!keywordsText) {
         showWarn('최소 하나의 키워드를 입력하세요');
         return;
@@ -1165,9 +1192,18 @@
 
       // 중복 키워드 체크 (다른 카테고리)
       for (const kw of keywords) {
-        const dup = state.rules.find(r => r.category !== category && r.keywords.includes(kw));
+        const dup = state.rules.find(r => r.category !== category && r.keywords.includes(kw) && !r.isFallback);
         if (dup) {
           showWarn(`"${kw}"은(는) 이미 "${dup.category}"에 포함되어 있습니다`);
+          return;
+        }
+      }
+
+      // 중복 카테고리 체크 (편집 모드가 아닐 때)
+      if (!editingCategory) {
+        const existingCategory = state.rules.find(r => r.category === category);
+        if (existingCategory) {
+          showWarn(`"${category}" 카테고리가 이미 존재합니다`);
           return;
         }
       }
@@ -1222,8 +1258,15 @@
         const matched = state.rules.find(r =>
           r.isActive && r.keywords.some(kw => haystack.includes(kw.toLowerCase()))
         );
-        tx.category = matched ? matched.category : '기타';
-        tx.ruleMatched = matched ? matched.category : null;
+
+        if (matched) {
+          tx.category = matched.category;
+          tx.ruleMatched = matched.category;
+        } else {
+          // 매칭된 규칙이 없으면 미분류 (category = null)
+          tx.category = null;
+          tx.ruleMatched = null;
+        }
       });
     }
 
@@ -1276,13 +1319,17 @@
       }
 
       const filtered = getFilteredTransactions();
+      const classified = filtered.filter(tx => tx.category !== null);
+      const unclassified = filtered.filter(tx => tx.category === null);
       const frag = document.createDocumentFragment();
 
-      filtered.forEach((tx, idx) => {
+      // 렌더링 함수
+      function renderTransactionRow(tx, idx) {
         const tr = document.createElement('tr');
-        const opts = CATEGORIES.map(cat =>
-          `<option value="${cat}" ${tx.category === cat ? 'selected' : ''}>${cat}</option>`
-        ).join('');
+        const opts = `<option value="">(미분류)</option>` +
+          CATEGORIES.map(cat =>
+            `<option value="${cat}" ${tx.category === cat ? 'selected' : ''}>${cat}</option>`
+          ).join('');
 
         const modeCell = tx.ruleMatched
           ? `<span style="font-size:11px;font-weight:600;color:var(--t3)">자동</span>`
@@ -1301,8 +1348,32 @@
           </td>
           <td style="text-align:center">${modeCell}</td>
         `;
-        frag.appendChild(tr);
+        return tr;
+      }
+
+      // 분류된 거래 렌더링
+      classified.forEach((tx, idx) => {
+        frag.appendChild(renderTransactionRow(tx, idx));
       });
+
+      // 미분류 섹션
+      if (unclassified.length > 0) {
+        const separatorTr = document.createElement('tr');
+        separatorTr.innerHTML = `
+          <td colspan="7" style="padding:20px 0;text-align:center">
+            <div class="sh-label" style="margin:0;justify-content:center">
+              <span style="flex:0;margin-right:8px">미분류</span>
+              <span style="flex:0;margin-left:8px">${unclassified.length}건</span>
+            </div>
+          </td>
+        `;
+        frag.appendChild(separatorTr);
+
+        // 미분류 거래 렌더링
+        unclassified.forEach((tx, idx) => {
+          frag.appendChild(renderTransactionRow(tx, classified.length + idx));
+        });
+      }
 
       body.innerHTML = '';
       body.appendChild(frag);
@@ -1320,26 +1391,37 @@
       const grid = document.getElementById('catStatsGrid');
       if (!grid) return;
 
+      // 미분류를 제외한 거래만 수집
+      const classifiedTxs = state.transactions.filter(tx => tx.category !== null);
+      const allCategories = new Set([...CATEGORIES, ...classifiedTxs.map(tx => tx.category)]);
+
       const stats = {};
-      CATEGORIES.forEach(cat => stats[cat] = { count: 0, total: 0 });
-      state.transactions.forEach(tx => {
+      allCategories.forEach(cat => stats[cat] = { count: 0, total: 0 });
+      classifiedTxs.forEach(tx => {
         stats[tx.category].count++;
         stats[tx.category].total += tx.amount;
       });
 
-      const grandTotal = state.transactions.reduce((s, tx) => s + Math.abs(tx.amount), 0);
+      const grandTotal = classifiedTxs.reduce((s, tx) => s + Math.abs(tx.amount), 0);
       const frag = document.createDocumentFragment();
 
-      CATEGORIES.forEach(cat => {
+      // CATEGORIES 순서대로 표시, 그 다음 새 카테고리들
+      const orderedCats = [
+        ...CATEGORIES.filter(cat => stats[cat].count > 0),
+        ...[...allCategories].filter(cat => !CATEGORIES.includes(cat) && stats[cat].count > 0)
+      ];
+
+      orderedCats.forEach(cat => {
         const data = stats[cat];
         if (data.count === 0) return;
 
         const pct = grandTotal > 0 ? ((Math.abs(data.total) / grandTotal) * 100).toFixed(1) : '0.0';
+        const color = getCategoryColor(cat);
         const div = document.createElement('div');
         div.style.cssText = 'background:var(--s2);border:1px solid var(--b1);border-radius:var(--r12);padding:14px 16px;display:flex;flex-direction:column;gap:6px';
         div.innerHTML = `
           <div style="display:flex;align-items:center;justify-content:space-between">
-            <span class="cat-badge cat-${cat}">${cat}</span>
+            <span class="cat-badge" style="background:${color.bg};color:${color.fg}">${cat}</span>
             <span style="font-size:12px;color:var(--t3);font-weight:600">${data.count}건</span>
           </div>
           <div style="font-size:18px;font-weight:800;letter-spacing:-0.5px;color:var(--t1);font-variant-numeric:tabular-nums">₩${fmtN(Math.abs(data.total))}</div>
@@ -1355,9 +1437,10 @@
     function changeTxCategory(txId, newCategory) {
       const tx = state.transactions.find(t => t.id === txId);
       if (tx) {
-        tx.category = newCategory;
+        tx.category = newCategory === '' ? null : newCategory;
         tx.ruleMatched = null;
       }
+      renderClassificationTable();
       renderCategoryStats();
     }
 
