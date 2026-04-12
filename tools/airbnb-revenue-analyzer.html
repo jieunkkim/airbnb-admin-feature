@@ -94,6 +94,9 @@
         flex-direction: column;
         align-items: flex-start;
       }
+      .input-grid {
+        grid-template-columns: 1fr !important;
+      }
     }
 
     @media (max-width: 480px) {
@@ -410,13 +413,13 @@
             각 열이 무엇을 나타내는지 선택하세요. <span style="color:var(--rd)">*</span>는 필수입니다.
           </p>
 
-          <div class="input-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px 18px">
+          <div class="input-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px 18px">
             <div class="ig-field">
               <label>거래 날짜 <span style="color:var(--rd)">*</span></label>
               <select id="colDate" onchange="updateMapping()"></select>
             </div>
             <div class="ig-field">
-              <label>설명 (적요)</label>
+              <label>거래 내용 <span style="color:var(--rd)">*</span></label>
               <select id="colDesc" onchange="updateMapping()"></select>
             </div>
             <div class="ig-field">
@@ -828,7 +831,7 @@
       const selects = ['colDate', 'colDesc', 'colAmount', 'colMemo'];
       selects.forEach(id => {
         const sel = document.getElementById(id);
-        sel.innerHTML = '<option value="">선택...</option>';
+        sel.innerHTML = '<option value="">선택</option>';
         headers.forEach((h, i) => {
           const opt = document.createElement('option');
           opt.value = i;
@@ -860,8 +863,8 @@
       const descIdx = parseInt(document.getElementById('colDesc').value);
       const memoIdx = parseInt(document.getElementById('colMemo').value);
 
-      if (isNaN(dateIdx) || isNaN(amountIdx)) {
-        showMsg('mapMsg', '날짜와 금액은 필수입니다', 'error');
+      if (isNaN(dateIdx) || isNaN(descIdx) || isNaN(amountIdx)) {
+        showMsg('mapMsg', '날짜, 거래 내용, 금액은 필수입니다', 'error');
         return;
       }
 
