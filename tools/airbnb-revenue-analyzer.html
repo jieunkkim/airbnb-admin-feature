@@ -779,6 +779,26 @@
       </div>
     </div>
 
+    <!-- MODAL: 금액 부호 불일치 경고 -->
+    <div class="mo-ov" id="mo_mismatch" onclick="if(event.target===this)closeMismatchModal()">
+      <div class="mo" style="max-width:700px;max-height:70vh;overflow-y:auto">
+        <div class="mo-hdr">
+          <span class="mo-ttl">⚠️ 금액 부호 불일치</span>
+          <button class="mo-x" onclick="closeMismatchModal()">✕</button>
+        </div>
+        <p class="mo-desc" style="line-height:1.6">금액의 부호(양수/음수)와 카테고리의 수익/지출 구분이 맞지 않는 거래가 있습니다.<br>아래 목록을 확인하고 처리 방법을 선택하세요.</p>
+
+        <div class="mo-body">
+          <div id="mismatchBody"></div>
+        </div>
+
+        <div class="mo-acts" style="gap:10px">
+          <button class="mo-btn p" onclick="excludeMismatched()" style="background:var(--rd)">제외하기</button>
+          <button class="mo-btn s" onclick="ignoreMismatch()">무시하고 진행</button>
+        </div>
+      </div>
+    </div>
+
   </div>
   <div id="toast"></div>
 
@@ -1643,6 +1663,69 @@
     }
 
     function completeStep3() {
+      // 금액 부호와 카테고리 타입 불일치 거래 검증
+      const mismatchedTxs = state.transactions.filter(tx => {
+        if (tx.category === null) return false;
+        const rule = state.rules.find(r => r.category === tx.category);
+        if (!rule) return false;
+
+        const isIncome = rule.type === 'income';
+        const amountIsPositive = tx.amount > 0;
+
+        // 불일치: (수익인데 음수) 또는 (지출인데 양수)
+        return (isIncome && tx.amount < 0) || (!isIncome && tx.amount > 0);
+      });
+
+      if (mismatchedTxs.length > 0) {
+        showMismatchModal(mismatchedTxs);
+      } else {
+        proceedToExclude();
+      }
+    }
+
+    function showMismatchModal(mismatchedTxs) {
+      const modal = document.getElementById('mo_mismatch');
+      const body = document.getElementById('mismatchBody');
+
+      // 불일치 거래 목록 렌더링
+      const rows = mismatchedTxs.map(tx => {
+        const rule = state.rules.find(r => r.category === tx.category);
+        const typeLabel = rule?.type === 'income' ? '<span style="color:var(--gr);font-weight:600">수익</span>' : '<span style="color:var(--rd);font-weight:600">지출</span>';
+        const amountLabel = tx.amount > 0 ? '<span style="color:var(--gr)">양수</span>' : '<span style="color:var(--rd)">음수</span>';
+        return `
+          <tr>
+            <td style="padding:10px;font-size:12px">${esc(tx.date)}</td>
+            <td style="padding:10px;font-size:12px">${esc(tx.desc)}</td>
+            <td style="padding:10px;font-size:12px">${esc(tx.category)}</td>
+            <td style="padding:10px;font-size:12px;text-align:right">${typeLabel}</td>
+            <td style="padding:10px;font-size:12px;text-align:right">${amountLabel}</td>
+            <td style="padding:10px;font-size:12px;text-align:right">₩${fmtN(Math.abs(tx.amount))}</td>
+          </tr>
+        `;
+      }).join('');
+
+      body.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--s2);border-bottom:1px solid var(--b1)">
+              <th style="padding:10px;text-align:left;font-weight:600">날짜</th>
+              <th style="padding:10px;text-align:left;font-weight:600">설명</th>
+              <th style="padding:10px;text-align:left;font-weight:600">카테고리</th>
+              <th style="padding:10px;text-align:right;font-weight:600">분류</th>
+              <th style="padding:10px;text-align:right;font-weight:600">금액</th>
+              <th style="padding:10px;text-align:right;font-weight:600">금액값</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      `;
+
+      modal.classList.add('open');
+    }
+
+    function proceedToExclude() {
       // 미분류건 자동 제외
       state.transactions.forEach(tx => {
         if (tx.category === null) {
@@ -1654,6 +1737,33 @@
       renderExcludeTable();
       renderExcludedList();
       updateExcludeCount();
+    }
+
+    function closeMismatchModal() {
+      document.getElementById('mo_mismatch').classList.remove('open');
+    }
+
+    function excludeMismatched() {
+      const mismatchedTxs = state.transactions.filter(tx => {
+        if (tx.category === null) return false;
+        const rule = state.rules.find(r => r.category === tx.category);
+        if (!rule) return false;
+        return (rule.type === 'income' && tx.amount < 0) || (rule.type !== 'income' && tx.amount > 0);
+      });
+
+      mismatchedTxs.forEach(tx => {
+        tx.excluded = true;
+        state.excludedIds.add(tx.id);
+      });
+
+      closeMismatchModal();
+      proceedToExclude();
+      toast(`${mismatchedTxs.length}건의 불일치 거래가 제외되었습니다`);
+    }
+
+    function ignoreMismatch() {
+      closeMismatchModal();
+      proceedToExclude();
     }
 
     /* ── EXCLUDE (Step 4) ── */
@@ -1763,8 +1873,16 @@
     function calcKpi(txs) {
       let income = 0, expense = 0;
       txs.forEach(tx => {
-        if (tx.amount > 0) income += tx.amount;
-        else expense += Math.abs(tx.amount);
+        // 카테고리 규칙의 type으로 판단
+        const rule = state.rules.find(r => r.category === tx.category);
+        const isIncome = rule && rule.type === 'income';
+
+        const amount = Math.abs(tx.amount);
+        if (isIncome) {
+          income += amount;
+        } else {
+          expense += amount;
+        }
       });
       return { income, expense, net: income - expense };
     }
