@@ -329,7 +329,7 @@
     .kpi-label { font-size:12px;color:var(--t3);font-weight:600 }
     .kpi-value { font-size:22px;font-weight:700;color:var(--t1) }
     .kpi-sub   { font-size:11px;color:var(--t3) }
-    #chartsRow { display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px;overflow-x:auto }
+    #chartsRow { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;overflow-x:auto }
     #chartsRow > .card { min-width:0;overflow:hidden }
     @media(max-width:640px){ #kpiRow{grid-template-columns:1fr 1fr} #chartsRow{grid-template-columns:1fr;overflow-x:visible} }
     @media(max-width:400px){ #kpiRow{grid-template-columns:1fr} }
@@ -887,10 +887,7 @@
         renderExcludedList();
       }
 
-      // Step 5 진입 시 리포트 렌더링
-      if (step === 4) {
-        setTimeout(() => renderReport(), 100);  // DOM 업데이트 후 렌더링
-      }
+      // Step 4는 completeStep4()에서만 렌더링
 
       const contents = document.querySelectorAll('.step-content');
       const tabs = document.querySelectorAll('.step-tab');
@@ -1450,6 +1447,17 @@
       const filtered = getFilteredTransactions();
       const classified = filtered.filter(tx => tx.category !== null);
       const unclassified = filtered.filter(tx => tx.category === null);
+
+      // 불일치 거래 필터링 (금액 부호 vs 카테고리 타입)
+      const mismatched = classified.filter(tx => {
+        const rule = state.rules.find(r => r.category === tx.category);
+        if (!rule) return false;
+        return (rule.type === 'income' && tx.amount < 0) || (rule.type !== 'income' && tx.amount > 0);
+      });
+
+      // 정상 거래 (불일치 제외)
+      const normal = classified.filter(tx => !mismatched.includes(tx));
+
       const frag = document.createDocumentFragment();
 
       // 렌더링 함수
@@ -1480,10 +1488,28 @@
         return tr;
       }
 
-      // 분류된 거래 렌더링
-      classified.forEach((tx, idx) => {
+      // 정상 거래 렌더링
+      normal.forEach((tx, idx) => {
         frag.appendChild(renderTransactionRow(tx, idx));
       });
+
+      // 불일치 섹션
+      if (mismatched.length > 0) {
+        const separatorTr = document.createElement('tr');
+        separatorTr.innerHTML = `
+          <td colspan="7" style="padding:24px 0;text-align:center;background:linear-gradient(135deg,rgba(220,38,38,.06),rgba(168,85,247,.04));border-top:2px solid var(--rd);border-bottom:2px solid var(--rd)">
+            <div style="font-size:14px;font-weight:700;color:var(--rd);letter-spacing:0.5px">
+              ⚠️ 금액 부호 불일치 <span style="margin-left:8px">${mismatched.length}건</span>
+            </div>
+          </td>
+        `;
+        frag.appendChild(separatorTr);
+
+        // 불일치 거래 렌더링
+        mismatched.forEach((tx, idx) => {
+          frag.appendChild(renderTransactionRow(tx, normal.length + idx));
+        });
+      }
 
       // 미분류 섹션
       if (unclassified.length > 0) {
@@ -1499,7 +1525,7 @@
 
         // 미분류 거래 렌더링
         unclassified.forEach((tx, idx) => {
-          frag.appendChild(renderTransactionRow(tx, classified.length + idx));
+          frag.appendChild(renderTransactionRow(tx, normal.length + mismatched.length + idx));
         });
       }
 
@@ -1705,21 +1731,23 @@
       }).join('');
 
       body.innerHTML = `
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead>
-            <tr style="background:var(--s2);border-bottom:1px solid var(--b1)">
-              <th style="padding:10px;text-align:left;font-weight:600">날짜</th>
-              <th style="padding:10px;text-align:left;font-weight:600">설명</th>
-              <th style="padding:10px;text-align:left;font-weight:600">카테고리</th>
-              <th style="padding:10px;text-align:right;font-weight:600">분류</th>
-              <th style="padding:10px;text-align:right;font-weight:600">금액</th>
-              <th style="padding:10px;text-align:right;font-weight:600">금액값</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
+        <div style="overflow-x:auto;max-height:400px;border:1px solid var(--b1);border-radius:var(--r8)">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px">
+            <thead>
+              <tr style="background:var(--s2);border-bottom:1px solid var(--b1);position:sticky;top:0">
+                <th style="padding:10px;text-align:left;font-weight:600;min-width:100px">날짜</th>
+                <th style="padding:10px;text-align:left;font-weight:600;min-width:120px">설명</th>
+                <th style="padding:10px;text-align:left;font-weight:600;min-width:80px">카테고리</th>
+                <th style="padding:10px;text-align:center;font-weight:600;width:60px">분류</th>
+                <th style="padding:10px;text-align:center;font-weight:600;width:60px">금액</th>
+                <th style="padding:10px;text-align:right;font-weight:600;min-width:100px">금액값</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
       `;
 
       modal.classList.add('open');
@@ -1859,6 +1887,7 @@
 
     function completeStep4() {
       switchStep(4);
+      renderReport();  // renderReport() 내에서 renderPeriodBar() 호출됨
     }
 
     /* ── REPORT (Step 5) ── */
@@ -2021,29 +2050,17 @@
 
       const maxValue = Math.max(...income, ...expense, 0);
       // 만원 단위로 올림 (예: 60,000,000 → 6,000만원)
-      const maxManWon = maxValue > 0 ? Math.ceil(maxValue / 10000 / 1000) * 1000 : 100;
-      // yMax는 원 단위로 설정 (만원 * 10,000 = 원)
-      const yMax = maxManWon * 10000;
-
-      // 최대값에 따라 y축 스텝 간격 동적 계산 (3~5개 눈금 표시)
-      let stepManWon;
-      if (maxManWon <= 100) {
-        stepManWon = 20;      // 20만원 간격
-      } else if (maxManWon <= 500) {
-        stepManWon = 100;     // 100만원 간격
-      } else if (maxManWon <= 1000) {
-        stepManWon = 200;     // 200만원 간격
-      } else if (maxManWon <= 5000) {
-        stepManWon = 1000;    // 1,000만원 간격
-      } else {
-        // 5000 이상: 최대값을 5로 나누어 간격 결정 (100만원 단위)
-        stepManWon = Math.ceil(maxManWon / 5 / 100) * 100;
-      }
+      const maxManWon = maxValue > 0 ? Math.ceil(maxValue / 10000) : 100;
+      // yMax를 5칸으로 고정하기 위해 올림 (만원 단위)
+      const roundedMaxManWon = Math.ceil(maxManWon / 5) * 5;
+      // yMax는 원 단위로 설정
+      const yMax = roundedMaxManWon * 10000;
+      // y축 5칸 고정: max값 / 5
+      const stepManWon = roundedMaxManWon / 5;
       const stepSize = stepManWon * 10000;
 
-      // canvas 크기명시적 설정 (고정 너비로 오버플로우 방지)
-      const maxWidth = 500;
-      const parentWidth = Math.min(canvas.parentElement.offsetWidth, maxWidth);
+      // canvas 크기 부모 요소에 맞추기
+      const parentWidth = canvas.parentElement.offsetWidth - 32;  // padding 제외
       canvas.width = parentWidth;
       canvas.height = 280;
 
