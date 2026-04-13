@@ -897,6 +897,9 @@
   </div>
   <div id="toast"></div>
 
+  <!-- 공용 유틸리티 로드 (모든 도구에서 사용 가능) -->
+  <script src="js/utils.js"></script>
+
   <script>
     /* ── ① DATA MANAGEMENT: DATA MODEL ── */
     // 전역 상태 객체
@@ -3034,41 +3037,8 @@
         .catch(() => toast('복사 실패 - 브라우저 권한을 확인하세요'));
     }
 
-    function showWarn(msg) {
-      const el = document.getElementById('mo_warn');
-      el.textContent = msg;
-      el.style.display = 'block';
-    }
-
-    /* ── HELPERS ── */
-    function showMsg(elementId, text, type) {
-      const el = document.getElementById(elementId);
-      const colors = {
-        success: { bg: 'rgba(22,163,74,.08)', border: 'rgba(22,163,74,.2)', color: 'var(--gr)' },
-        error: { bg: 'rgba(220,38,38,.08)', border: 'rgba(220,38,38,.2)', color: 'var(--rd)' },
-        warning: { bg: 'rgba(217,119,6,.08)', border: 'rgba(217,119,6,.2)', color: 'var(--am)' }
-      };
-      const c = colors[type] || colors.success;
-      el.innerHTML = `<div style="background:${c.bg};border:1px solid ${c.border};border-radius:var(--r8);padding:10px 14px;font-size:13px;color:${c.color}">${esc(text)}</div>`;
-      el.style.display = 'block';
-    }
-
-    function toast(msg) {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.classList.add('show');
-      setTimeout(() => el.classList.remove('show'), 2800);
-    }
-
-    function esc(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
-    function fmtN(num) {
-      return num.toLocaleString('ko-KR');
-    }
+    // 공용 유틸리티 함수들은 js/utils.js로 분리됨
+    // - showWarn(), showMsg(), toast(), esc(), fmtN()
   </script>
 
   <!-- MODAL: PARSING EXCLUDED ROWS -->

@@ -226,5 +226,27 @@ airbnb-revenue-analyzer.html    (main + rendering)
 - 함수 호출 맵으로 **유지보수성 향상** ✅
 
 **다음 진행:**
-- [ ] Phase 2-B 검토: 함수 순서 재조정 필요 여부 판단
-- [ ] 필요시 Option B (파일 분리)로 전환
+- ✅ Phase 2-B 시작 결정 (파일 크기 감소 목표)
+- ✅ 점진적 분리 계획 수립 (`phase2b-js-파일-분리-계획.md`)
+
+#### Phase 2-B: JS 파일 분리 (점진적 단계별)
+**목표**: 3,026줄 → 1,200줄 (60% 감소)  
+**방법**: 5단계로 그룹별로 하나씩 분리 + 테스트 검증
+
+**단계별 계획:**
+- [ ] **Step 1**: Utils 분리 (`js/utils.js`, ~120줄) - 의존성 낮음 ✅ 우선순위 1
+- [ ] **Step 2**: Data-Calculator 분리 (`js/data-calculator.js`, ~150줄) - 의존성 낮음 ✅ 우선순위 2
+- [ ] **Step 3**: Chart-Renderer 분리 (`js/chart-renderer.js`, ~140줄) - 의존성 중간 ⚠️ 우선순위 3
+- [ ] **Step 4**: Rules-Manager 분리 (`js/rules-manager.js`, ~300줄) - 의존성 중간 ⚠️ 우선순위 4
+- [ ] **Step 5**: Report-Generator 분리 (`js/report-generator.js`, ~400줄) - 의존성 높음 ⚠️⚠️ 우선순위 5
+
+**각 단계 프로세스:**
+1. 함수 추출 및 파일 생성
+2. 스크립트 로드 순서 설정
+3. 브라우저 테스트 (콘솔 에러 확인)
+4. 기능 동작 검증 (체크리스트)
+5. Commit & 문서 업데이트
+
+**진행 현황:**
+- [x] Phase 2-B 계획 수립
+- [ ] Step 1 실행 (예정)
