@@ -729,15 +729,15 @@
             <button class="notion-btn primary" onclick="openPdfOptionsModal()" style="font-size:13px;padding:7px 14px;display:none">⬇ PDF</button>
           </div>
         </div>
-        <div class="card-body">
+        <div class="card-body" style="display:flex;flex-direction:column;height:100%">
           <!-- 기간 선택 칩 (sticky로 고정됨) -->
           <div id="reportPeriodBar"></div>
 
           <!-- 미분류 거래 경고 배너 -->
           <div id="reportUnclassifiedBanner"></div>
 
-          <!-- 모든 연도·월 섹션이 여기에 렌더링됨 -->
-          <div id="reportAllSections"></div>
+          <!-- 모든 연도·월 섹션이 여기에 렌더링됨 (스크롤 영역) -->
+          <div id="reportAllSections" style="overflow-y:auto;flex:1"></div>
         </div>
       </div>
 
