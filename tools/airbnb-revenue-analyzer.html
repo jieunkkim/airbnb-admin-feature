@@ -531,7 +531,7 @@
           <div class="card-ico" style="background:rgba(37,99,235,.1)">🏷️</div>
           <span class="card-ttl">분류 규칙</span>
           <div style="margin-left:auto;display:flex;gap:8px">
-            <button class="notion-btn" onclick="openImportRulesModal()" title="텍스트에서 규칙 불러오기">⬆ 규칙 불러오기</button>
+            <button class="notion-btn" onclick="openImportRulesModal()" title="텍스트에서 규칙 불러오기">규칙 불러오기</button>
             <button class="notion-btn" onclick="resetRules()" title="기본 규칙으로 초기화">↺ 초기화</button>
           </div>
         </div>
@@ -824,7 +824,7 @@
     </div>
 
     <!-- MODAL: IMPORT RULES -->
-    <div class="mo-ov" id="mo_importRules" style="display:none" onclick="if(event.target===this)closeImportRulesModal()">
+    <div class="mo-ov" id="mo_importRules" onclick="if(event.target===this)closeImportRulesModal()">
       <div class="mo" style="max-width:700px">
         <div class="mo-hdr">
           <span class="mo-ttl">규칙 불러오기</span>
@@ -1539,25 +1539,22 @@
     }
 
     function openImportRulesModal() {
-      console.log('[DEBUG] openImportRulesModal called');
       const modal = document.getElementById('mo_importRules');
-      console.log('[DEBUG] modal element:', modal);
       if (modal) {
-        modal.style.display = 'flex';
-        console.log('[DEBUG] modal display set to flex');
+        modal.classList.add('open');
         const textarea = document.getElementById('ruleInputText');
         if (textarea) {
           textarea.value = '';
           textarea.focus();
-          console.log('[DEBUG] textarea focused');
         }
-      } else {
-        console.error('[ERROR] mo_importRules element not found');
       }
     }
 
     function closeImportRulesModal() {
-      document.getElementById('mo_importRules').style.display = 'none';
+      const modal = document.getElementById('mo_importRules');
+      if (modal) {
+        modal.classList.remove('open');
+      }
     }
 
     function importRulesFromText() {
@@ -1590,7 +1587,7 @@
             category,
             keywords,
             type,
-            colorIdx: 0,
+            colorIdx: Math.floor(Math.random() * COLOR_PALETTE.length),
             isActive: true
           });
         });
