@@ -697,33 +697,17 @@
           <!-- KPI 카드 (총수입, 총지출, 순이익) -->
           <div id="kpiRow"></div>
 
-          <!-- 차트 영역 -->
-          <div id="chartsRow">
-            <div class="card" style="padding:16px">
-              <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">월별 수입/지출 추이</div>
-              <canvas id="monthlyBarChart" height="180"></canvas>
-            </div>
-            <div class="card" style="padding:16px">
+          <!-- 차트 영역 (카테고리 비율만) -->
+          <div id="chartsRow" style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">
+            <div class="card" style="padding:16px;display:flex;flex-direction:column;align-items:center">
               <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">카테고리 비율</div>
-              <canvas id="categoryDoughnutChart" height="180"></canvas>
+              <canvas id="categoryDoughnutChart" height="300" width="300"></canvas>
             </div>
           </div>
 
-          <!-- 카테고리별 상세 테이블 -->
+          <!-- 카테고리별 상세 (토글) -->
           <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">카테고리별 상세</div>
-          <div class="tbl-scroll">
-            <table class="table" style="width:100%;table-layout:fixed">
-              <thead>
-                <tr>
-                  <th style="width:30%;text-align:left">카테고리</th>
-                  <th style="width:35%;text-align:right">금액</th>
-                  <th style="width:15%;text-align:right">비율</th>
-                  <th style="width:20%;text-align:right">건수</th>
-                </tr>
-              </thead>
-              <tbody id="reportCatBody"></tbody>
-            </table>
-          </div>
+          <div id="reportCatDetailsContainer"></div>
         </div>
       </div>
 
@@ -1982,9 +1966,8 @@
         : filterByPeriod(all, reportState.year, null);
       console.log('[Report] Period transactions:', periodTxs.length);
       renderKpiCards(calcKpi(periodTxs));
-      renderMonthlyChart(all, reportState.year);
       renderDoughnutChart(calcCategoryBreakdown(periodTxs));
-      renderReportCatTable(calcCategoryBreakdown(periodTxs));
+      renderCategoryDetails(calcCategoryBreakdown(periodTxs));
     }
 
     function renderPeriodBar(years) {
@@ -2110,12 +2093,12 @@
         console.warn('[Report] No breakdown data for doughnut chart');
         return;
       }
-      const labels = breakdown.map(r => r.category);
+      const labels = breakdown.map(r => `${r.category} (${r.pct}%)`);
       const data   = breakdown.map(r => Math.abs(r.total));
       if (doughnutChartInstance) { doughnutChartInstance.destroy(); doughnutChartInstance = null; }
       // canvas 크기 명시적 설정
       canvas.width = canvas.parentElement.offsetWidth;
-      canvas.height = 200;
+      canvas.height = 280;
       doughnutChartInstance = new Chart(canvas, {
         type: 'doughnut',
         data: {
@@ -2125,33 +2108,66 @@
         options: {
           responsive: false,
           plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
-            tooltip: { callbacks: { label: ctx => ` ₩${fmtN(ctx.raw)} (${breakdown[ctx.dataIndex].pct}%)` } }
+            legend: { position: 'bottom', labels: { font: { size: 12 }, boxWidth: 14, padding: 15 } },
+            tooltip: { callbacks: { label: ctx => ` ₩${fmtN(ctx.raw)}` } }
           }
         }
       });
       console.log('[Report] Doughnut chart rendered:', labels);
     }
 
-    function renderReportCatTable(breakdown) {
-      const body = document.getElementById('reportCatBody');
-      if (!body) return;
-      const total = breakdown.reduce((s, r) => s + Math.abs(r.total), 0);
-      body.innerHTML = breakdown.map(r => `
-        <tr>
-          <td style="width:30%;font-size:13px;font-weight:600;text-align:left">${esc(r.category)}</td>
-          <td style="width:35%;text-align:right;font-size:13px;overflow:hidden;text-overflow:ellipsis">${r.total >= 0 ? '<span style="color:var(--gr)">' : '<span style="color:var(--rd)">'}₩${fmtN(Math.abs(r.total))}</span></td>
-          <td style="width:15%;text-align:right;font-size:13px;color:var(--t3)">${r.pct}%</td>
-          <td style="width:20%;text-align:right;font-size:13px;color:var(--t3)">${r.count}건</td>
-        </tr>
-      `).join('') + `
-        <tr class="total-row">
-          <td style="width:30%;font-size:13px;font-weight:700;text-align:left">합계</td>
-          <td style="width:35%;text-align:right;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis">₩${fmtN(total)}</td>
-          <td style="width:15%;text-align:right;font-size:13px;font-weight:700">100%</td>
-          <td style="width:20%;text-align:right;font-size:13px;color:var(--t3);font-weight:700">${breakdown.reduce((s,r)=>s+r.count,0)}건</td>
-        </tr>
-      `;
+    function renderCategoryDetails(breakdown) {
+      const container = document.getElementById('reportCatDetailsContainer');
+      if (!container) return;
+
+      const html = breakdown.map((r, idx) => `
+        <div style="margin-bottom:12px;border:1px solid var(--b1);border-radius:var(--r8);overflow:hidden">
+          <!-- 토글 헤더 -->
+          <div style="padding:14px 16px;background:var(--s2);cursor:pointer;display:flex;align-items:center;gap:12px" onclick="toggleCategoryDetail('detail${idx}', this)">
+            <span id="icon${idx}" style="font-size:14px">▼</span>
+            <span style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${esc(r.category)}</span>
+            <span style="font-size:13px;font-weight:600;color:var(--t2)">₩${fmtN(Math.abs(r.total))}</span>
+            <span style="font-size:12px;color:var(--t3);min-width:40px;text-align:right">${r.pct}%</span>
+            <span style="font-size:12px;color:var(--t3);min-width:40px;text-align:right">${r.count}건</span>
+          </div>
+          <!-- 토글 콘텐츠 (거래 내역) -->
+          <div id="detail${idx}" style="display:none;padding:16px;background:var(--s1);max-height:400px;overflow-y:auto">
+            <div style="font-size:12px;color:var(--t3);margin-bottom:10px">해당 카테고리의 거래 내역</div>
+            <div id="catTxs${idx}"></div>
+          </div>
+        </div>
+      `).join('');
+
+      container.innerHTML = html;
+
+      // 각 카테고리의 거래 내역 렌더링
+      const classifiedTxs = state.transactions.filter(tx => !tx.excluded && tx.category !== null);
+      breakdown.forEach((r, idx) => {
+        const catTxs = classifiedTxs.filter(tx => tx.category === r.category);
+        const txsHtml = catTxs.map(tx => `
+          <div style="padding:8px;border-bottom:1px solid var(--b2);font-size:11px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="color:var(--t2)">${esc(tx.date)}</span>
+              <span style="font-weight:600">${tx.amount > 0 ? '<span style="color:var(--gr)">+' : '<span style="color:var(--rd)">'}₩${fmtN(Math.abs(tx.amount))}</span></span>
+            </div>
+            <div style="color:var(--t3)">${esc(tx.desc)}</div>
+          </div>
+        `).join('');
+
+        document.getElementById(`catTxs${idx}`).innerHTML = txsHtml || '<div style="color:var(--t3);padding:8px">거래 내역이 없습니다</div>';
+      });
+    }
+
+    function toggleCategoryDetail(detailId, header) {
+      const detail = document.getElementById(detailId);
+      const icon = header.querySelector('span:first-child');
+      if (detail.style.display === 'none') {
+        detail.style.display = 'block';
+        icon.textContent = '▼';
+      } else {
+        detail.style.display = 'none';
+        icon.textContent = '▶';
+      }
     }
 
     function copyReportText() {
