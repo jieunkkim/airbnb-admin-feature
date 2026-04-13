@@ -2668,11 +2668,6 @@
         toast('복사 실패했습니다');
       });
     }
-      navigator.clipboard.writeText(txt)
-        .then(() => toast('리포트가 복사되었습니다'))
-        .catch(() => toast('복사 실패 - 브라우저 권한을 확인하세요'));
-    }
-
 
     function exportReviewData() {
       const active = state.transactions.filter(tx => !tx.excluded);
