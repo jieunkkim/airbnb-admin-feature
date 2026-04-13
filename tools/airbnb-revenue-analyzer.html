@@ -900,6 +900,9 @@
   <!-- 공용 유틸리티 로드 (모든 도구에서 사용 가능) -->
   <script src="js/utils.js"></script>
 
+  <!-- 데이터 계산/필터링 로드 -->
+  <script src="js/data-calculator.js"></script>
+
   <script>
     /* ── ① DATA MANAGEMENT: DATA MODEL ── */
     // 전역 상태 객체
@@ -2298,71 +2301,10 @@
       return state.transactions.filter(tx => !tx.excluded);
     }
 
-    function calcKpi(txs) {
-      let income = 0, expense = 0;
-      txs.forEach(tx => {
-        // 카테고리 규칙의 type으로 판단
-        const rule = state.rules.find(r => r.category === tx.category);
-        const isIncome = rule && rule.type === 'income';
-
-        const amount = Math.abs(tx.amount);
-        if (isIncome) {
-          income += amount;
-        } else {
-          expense += amount;
-        }
-      });
-      return { income, expense, net: income - expense };
-    }
-
-    function calcCategoryBreakdown(txs) {
-      const map = {};
-      CATEGORIES.forEach(c => { map[c] = { total: 0, count: 0 }; });
-      // 분류된 거래만 처리 (미분류는 제외)
-      txs.filter(tx => tx.category !== null).forEach(tx => {
-        if (map[tx.category]) {
-          map[tx.category].total += tx.amount;
-          map[tx.category].count++;
-        }
-      });
-      const grandTotal = Object.values(map).reduce((s, v) => s + Math.abs(v.total), 0);
-      return CATEGORIES.map(c => ({
-        category: c,
-        total: map[c].total,
-        count: map[c].count,
-        pct: grandTotal ? Math.round(Math.abs(map[c].total) / grandTotal * 100) : 0
-      })).filter(r => r.count > 0);
-    }
-
-    function getYears(txs) {
-      // tx.date는 이미 YYYY-MM-DD 형식으로 정규화됨 (buildTransactions에서)
-      const years = new Set(txs.map(tx => tx.date.split('-')[0]));
-      return [...years].sort();
-    }
-
-    function filterByPeriod(txs, year, month) {
-      // tx.date는 이미 YYYY-MM-DD 형식으로 정규화됨 (buildTransactions에서)
-      return txs.filter(tx => {
-        const [y, m] = tx.date.split('-');
-        if (y !== year) return false;
-        if (month && m !== month) return false;
-        return true;
-      });
-    }
-
-    function buildMonthlyChartData(txs, year) {
-      const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-      const labels = months.map(m => `${parseInt(m)}월`);
-      const income  = months.map(m => {
-        const filtered = filterByPeriod(txs, year, m);
-        return filtered.filter(tx => tx.amount > 0).reduce((s, tx) => s + tx.amount, 0);
-      });
-      const expense = months.map(m => {
-        const filtered = filterByPeriod(txs, year, m);
-        return filtered.filter(tx => tx.amount < 0).reduce((s, tx) => s + Math.abs(tx.amount), 0);
-      });
-      return { labels, income, expense };
-    }
+    // 데이터 계산/필터링 함수들은 js/data-calculator.js로 분리됨
+    // - calcKpi(), calcCategoryBreakdown()
+    // - getYears(), filterByPeriod(), getMonthsWithData()
+    // - buildMonthlyChartData()
 
     /* ── ⑥ REPORT GENERATION & ⑦ CHART RENDERING & ⑨ DATA EXPORT & ⑪ UTILITIES & ⑫ OTHER UI ── */
     // 리포트 헬퍼 함수들
@@ -2384,10 +2326,6 @@
     // - toast(): 토스트 메시지
     // - showMsg(), showWarn(): 메시지 박스
     /* ── NEW REPORT HELPER FUNCTIONS ── */
-    function getMonthsWithData(txs, year) {
-      const months = new Set(filterByPeriod(txs, year, null).map(tx => tx.date.slice(5, 7)));
-      return [...months].sort();
-    }
 
     function renderSummaryBar(kpi) {
       const container = document.getElementById('reportSummaryBar');
