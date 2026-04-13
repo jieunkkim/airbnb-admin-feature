@@ -1,0 +1,2976 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>에어비앤비 수익 분석기</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    /* ── BACK NAV ── */
+    /* styles.css에서 공통 스타일 상속 */
+
+    /* ── STEP TABS ── */
+    .step-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 20px;
+      border-bottom: 1.5px solid var(--b2);
+      padding-bottom: 0;
+    }
+    .step-tab {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--t3);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1.5px;
+      transition: color 0.2s;
+    }
+    .step-tab:hover {
+      color: var(--t2);
+    }
+    .step-tab.active {
+      color: var(--ac);
+      border-bottom-color: var(--ac);
+    }
+
+    /* ── STEP CONTENT ── */
+    .step-content {
+      display: none;
+    }
+    .step-content.active {
+      display: block;
+    }
+
+    /* ── TOTAL ROW (styles.css 확장) ── */
+    .total-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, rgba(232, 101, 10, 0.08), rgba(217, 119, 6, 0.06));
+      border: 1px solid rgba(232, 101, 10, 0.2);
+      border-radius: var(--r16);
+      padding: 20px 24px;
+      margin-top: 20px;
+    }
+    .total-label {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--t1);
+    }
+    .total-val {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #e8650a, #d97706);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 860px) {
+      .hdr {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .input-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .total-val {
+        font-size: 22px;
+      }
+    }
+
+    /* ── MODAL (airbnb-revenue-calculator.html 패턴) ── */
+    .mo-ov {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(7px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .mo-ov.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .mo {
+      background: #fff;
+      border: 1px solid var(--b2);
+      border-radius: var(--r24);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      padding: 28px;
+      width: 100%;
+      max-width: 520px;
+      transform: scale(0.95) translateY(18px);
+      transition: transform 0.3s cubic-bezier(0.34, 1.3, 0.64, 1);
+      max-height: 82vh;
+      overflow-y: auto;
+    }
+    .mo-ov.open .mo {
+      transform: scale(1) translateY(0);
+    }
+    .mo-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .mo-ttl {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .mo-x {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      border: none;
+      background: var(--s2);
+      color: var(--t2);
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .mo-x:hover {
+      background: var(--s3);
+      color: var(--t1);
+    }
+    .mo-desc {
+      font-size: 14px;
+      color: var(--t2);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+    .mo-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .mo-warn {
+      font-size: 13px;
+      color: var(--rd);
+      margin-bottom: 12px;
+    }
+    .mo-acts {
+      display: flex;
+      gap: 9px;
+    }
+    .mo-btn {
+      flex: 1;
+      padding: 11px;
+      border-radius: var(--r4);
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .mo-btn.p {
+      background: linear-gradient(135deg, var(--ac), var(--ac2));
+      color: white;
+      box-shadow: 0 3px 14px var(--acg);
+    }
+    .mo-btn.p:hover {
+      transform: translateY(-1px);
+    }
+    .mo-btn.s {
+      background: var(--s2);
+      color: var(--t2);
+      border: 1px solid var(--b1);
+    }
+    .mo-btn.s:hover {
+      background: var(--s3);
+      color: var(--t1);
+    }
+
+    /* ── CATEGORY BADGE ── */
+    .cat-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      vertical-align: middle;
+    }
+    .cat-수입 {
+      background: var(--grd);
+      color: var(--gr);
+    }
+    .cat-월세 {
+      background: var(--bld);
+      color: var(--bl);
+    }
+    .cat-청소비 {
+      background: var(--amd);
+      color: var(--am);
+    }
+    .cat-관리비 {
+      background: rgba(232, 101, 10, 0.1);
+      color: var(--ac);
+    }
+    .cat-시설투자비 {
+      background: var(--pkd);
+      color: var(--pk);
+    }
+    .cat-세금 {
+      background: var(--rdd);
+      color: var(--rd);
+    }
+    .cat-소모품 {
+      background: var(--grd);
+      color: var(--gr);
+      opacity: 0.8;
+    }
+    .cat-기타 {
+      background: var(--s3);
+      color: var(--t2);
+    }
+
+    /* ── SECTION LABEL ── */
+    .sh-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--t2);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sh-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--b1);
+    }
+
+    /* ── FILTER CHIP ── */
+    .filter-chip {
+      padding: 5px 12px;
+      border-radius: var(--r24);
+      border: 1px solid var(--b2);
+      background: var(--s1);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--t2);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .filter-chip:hover { background: var(--s2) }
+    .filter-chip.active {
+      background: var(--ac);
+      border-color: var(--ac);
+      color: #fff;
+    }
+
+    /* ── CLASSIFY STATS GRID ── */
+    #catStatsGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 480px) {
+      #catStatsGrid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* ── REPORT ── */
+    #reportPeriodBar {
+      position:sticky;top:0;z-index:10;
+      display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+      padding:10px 0 12px;background:var(--s1);
+      border-bottom:1px solid var(--b2);margin-bottom:24px
+    }
+    .period-chip {
+      padding:5px 14px;border-radius:var(--r24);border:1px solid var(--b2);
+      background:var(--s1);font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .15s
+    }
+    .period-chip:hover { background:var(--s2) }
+    .period-chip.active { background:var(--ac);border-color:var(--ac);color:#fff }
+
+    /* 리포트 섹션 */
+    .report-section { margin-bottom:48px }
+    .report-section-title {
+      font-size:17px;font-weight:700;color:var(--t1);
+      border-bottom:2px solid var(--ac);padding-bottom:10px;margin-bottom:20px
+    }
+
+    /* 미분류 배너 */
+    #reportUnclassifiedBanner {
+      padding:14px 16px;background:rgba(217,119,6,.08);border:1px solid var(--am);
+      border-radius:var(--r8);margin-bottom:16px;display:none;align-items:center;justify-content:space-between;gap:12px
+    }
+    #reportUnclassifiedBanner.show { display:flex }
+    #reportUnclassifiedBanner .banner-text { font-size:13px;color:var(--t1);flex:1 }
+    #reportUnclassifiedBanner .banner-btn {
+      padding:6px 14px;background:var(--am);color:#fff;border:none;border-radius:var(--r6);
+      font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap
+    }
+
+    /* 수입/지출 비율 바 */
+    #reportSummaryBar {
+      padding:12px 16px;background:var(--s1);border:1px solid var(--b1);
+      border-radius:var(--r8);margin-bottom:16px
+    }
+    .summary-bar-label { font-size:12px;color:var(--t3);margin-bottom:8px;display:flex;justify-content:space-between }
+    .summary-bar-track {
+      width:100%;height:20px;background:var(--s2);border-radius:var(--r4);overflow:hidden;display:flex
+    }
+    .summary-bar-fill { height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff }
+
+    #kpiRow { display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px }
+    .kpi-card {
+      padding:16px 18px;background:var(--s1);border:1px solid var(--b1);
+      border-radius:var(--r12);display:flex;flex-direction:column;gap:4px
+    }
+    .kpi-label { font-size:12px;color:var(--t3);font-weight:600 }
+    .kpi-value { font-size:22px;font-weight:700;color:var(--t1) }
+    .kpi-sub   { font-size:11px;color:var(--t3) }
+
+    #chartsRow { overflow-x:auto }
+    #chartsRow > .card { min-width:0;overflow:hidden }
+
+    /* 인사이트 배지 */
+    #reportInsightRow { display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px }
+    @media(max-width:860px) { #reportInsightRow { grid-template-columns:1fr } }
+    .insight-badge {
+      padding:8px 12px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r8);
+      font-size:12px;display:flex;flex-direction:column;gap:3px
+    }
+    .insight-badge-label { font-size:10px;color:var(--t3);font-weight:600 }
+    .insight-badge-value { font-size:13px;font-weight:700;color:var(--t1) }
+
+    @media(max-width:640px){
+      #kpiRow{grid-template-columns:1fr 1fr}
+      #chartsRow{overflow-x:visible}
+      .insight-badge { min-width:auto }
+    }
+    @media(max-width:400px){
+      #kpiRow{grid-template-columns:1fr}
+      .insight-badge { min-width:auto }
+    }
+
+    @media print {
+      .back-nav,
+      .step-tabs,
+      .hdr-btns,
+      #toast {
+        display: none !important;
+      }
+    }
+  </style>
+  <!-- Chart.js (차트 렌더링) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- html2pdf.js (PDF 다운로드) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div class="wrap">
+
+    <!-- BACK NAV -->
+    <a href="../index.html" class="back-nav">← 홈으로 돌아가기</a>
+
+    <!-- HEADER -->
+    <div class="hdr fuv">
+      <div>
+        <h1 class="pg-title">에어비앤비 <span>수익 분석기</span><span class="ver-badge">v1 · 2026-04-12</span></h1>
+        <p class="pg-sub">거래내역을 붙여넣기하여 자동으로 분류하고 수익을 분석하세요</p>
+        <div style="margin-top:10px; display:inline-flex; background:var(--s2); border:1px solid var(--b2); border-radius:var(--r8); padding:8px 14px; font-size:12px; color:#c97a3a; line-height:1.7">본 분석 도구는 참고용이며, 실제 거래 시 변동될 수 있습니다. 무단 복제 및 배포를 금합니다. © 2026 에이치런(h.run) All rights reserved.</div>
+      </div>
+      <div class="hdr-btns">
+        <button class="notion-btn" onclick="resetAll()">↺ 초기화</button>
+      </div>
+    </div>
+
+    <!-- STEP TABS -->
+    <div class="step-tabs">
+      <div class="step-tab active" onclick="switchStep(0)">1. 데이터 입력</div>
+      <div class="step-tab" onclick="switchStep(1)">2. 분류 규칙</div>
+      <div class="step-tab" onclick="switchStep(2)">3. 분류 적용</div>
+      <div class="step-tab" onclick="switchStep(3)">4. 데이터 검토</div>
+      <div class="step-tab" onclick="switchStep(4)">5. 리포트</div>
+    </div>
+
+    <!-- STEP 0: DATA INPUT -->
+    <div class="step-content active">
+
+      <!-- CARD: DATA INPUT -->
+      <div class="card fuv d1">
+        <div class="card-hdr">
+          <div class="card-ico" style="background:rgba(232,101,10,.1)">📋</div>
+          <span class="card-ttl">거래내역 붙여넣기</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--t2);margin-bottom:14px;line-height:1.6">
+            은행 거래 내역을 복사하여 붙여넣으세요. CSV, TSV 형식을 자동으로 감지합니다.
+          </p>
+
+          <div class="ig-field">
+            <label>거래 데이터</label>
+            <textarea id="rawInput" rows="7" placeholder="거래일자&#9;내용&#9;금액&#10;2026-01-01&#9;Airbnb 수입&#9;500000&#10;2026-01-02&#9;청소용품 구매&#9;50000"></textarea>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+            <button class="notion-btn primary" onclick="parseData()">다음</button>
+          </div>
+
+          <div id="parseMsg" style="display:none;margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- CARD: COLUMN MAPPING -->
+      <div class="card fuv d2" id="mapCard" style="display:none">
+        <div class="card-hdr">
+          <div class="card-ico" style="background:rgba(37,99,235,.1)">🗺️</div>
+          <span class="card-ttl">컬럼 매핑</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--t2);margin-bottom:14px;line-height:1.6">
+            각 열이 무엇을 나타내는지 선택하세요. <span style="color:var(--rd)">*</span>는 필수입니다.
+          </p>
+
+          <div class="input-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px 18px">
+            <div class="ig-field">
+              <label>거래 일시 <span style="color:var(--rd)">*</span></label>
+              <select id="colDate" onchange="updateMapping()"></select>
+            </div>
+            <div class="ig-field">
+              <label>거래 내용 <span style="color:var(--rd)">*</span></label>
+              <select id="colDesc" onchange="updateMapping()"></select>
+            </div>
+            <div class="ig-field">
+              <label>거래 금액 <span style="color:var(--rd)">*</span></label>
+              <select id="colAmount" onchange="updateMapping()"></select>
+            </div>
+            <div class="ig-field">
+              <label>메모</label>
+              <select id="colMemo" onchange="updateMapping()"></select>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+            <button class="notion-btn" onclick="backToParse()">이전</button>
+            <button class="notion-btn primary" onclick="confirmMapping()">확인</button>
+          </div>
+
+          <div id="mapMsg" style="display:none;margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- CARD: DATA PREVIEW -->
+      <div class="card fuv d3" id="previewCard" style="display:none">
+        <div class="card-hdr">
+          <div class="card-ico" style="background:rgba(22,163,74,.1)">👁️</div>
+          <span class="card-ttl">데이터 미리보기</span>
+          <span id="statCount" style="margin-left:auto;font-size:12px;color:var(--t3);font-weight:600"></span>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 22px 0">
+          <button class="notion-btn" onclick="backToMap()">이전</button>
+          <button class="notion-btn primary" onclick="completeStep1()">다음</button>
+        </div>
+
+        <div class="card-body" style="padding-bottom:0">
+          <div class="tbl-scroll">
+            <table id="previewTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>날짜</th>
+                  <th>설명</th>
+                  <th>금액</th>
+                  <th>메모</th>
+                </tr>
+              </thead>
+              <tbody id="previewBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TOTAL ROW -->
+        <div style="margin:16px 22px 0 22px;padding-bottom:22px">
+          <div class="total-row fuv d4" style="margin-top:0">
+            <div class="total-label">합계 금액</div>
+            <div class="total-val" id="statSum">₩0</div>
+          </div>
+        </div>
+
+        <div id="previewMsg" style="display:none;margin-top:12px"></div>
+      </div>
+
+    </div>
+
+    <!-- STEP 1: CLASSIFICATION RULES -->
+    <div class="step-content">
+
+      <!-- CARD: RULE MANAGEMENT -->
+      <div class="card fuv d1">
+        <div class="card-hdr">
+          <div class="card-ico" style="background:rgba(37,99,235,.1)">🏷️</div>
+          <span class="card-ttl">분류 규칙</span>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="notion-btn" onclick="openImportRulesModal()" title="텍스트에서 규칙 불러오기">⬆ 규칙 불러오기</button>
+            <button class="notion-btn" onclick="resetRules()" title="기본 규칙으로 초기화">↺ 초기화</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--t2);margin-bottom:16px;line-height:1.6">
+            거래내역을 자동으로 분류하는 규칙을 관리합니다. 입력한 키워드 중 하나라도 포함되면 해당 카테고리로 분류됩니다.
+          </p>
+
+          <!-- 규칙 테이블 -->
+          <div style="overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:600px">
+              <thead>
+                <tr>
+                  <th style="width:44px;text-align:center;padding:10px 8px;font-weight:700;color:var(--t3);background:var(--s2);border-bottom:1px solid var(--b2)">활성</th>
+                  <th style="width:50px;text-align:left;padding:10px 8px;font-weight:700;color:var(--t3);background:var(--s2);border-bottom:1px solid var(--b2)">카테고리</th>
+                  <th style="width:80px;text-align:center;padding:10px 8px;font-weight:700;color:var(--t3);background:var(--s2);border-bottom:1px solid var(--b2)">수익/지출</th>
+                  <th style="text-align:left;padding:10px 8px;font-weight:700;color:var(--t3);background:var(--s2);border-bottom:1px solid var(--b2)">키워드 (쉼표 구분)</th>
+                  <th style="width:64px;text-align:center;padding:10px 8px;font-weight:700;color:var(--t3);background:var(--s2);border-bottom:1px solid var(--b2)"></th>
+                </tr>
+              </thead>
+              <tbody id="rulesBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADD BUTTON -->
+      <div class="add-area">
+        <button class="add-btn" onclick="openRuleModal()">+ 규칙 추가</button>
+      </div>
+
+      <!-- PROCEED BUTTON -->
+      <div style="padding:0 22px 22px">
+        <button class="notion-btn primary" style="width:100%" onclick="completeStep2()">분류 적용하기</button>
+      </div>
+
+    </div>
+
+    <div class="step-content">
+
+      <!-- CARD: 카테고리별 통계 -->
+      <div class="card fuv d1" id="statsCard">
+        <div class="card-hdr">
+          <div class="card-ico" style="background:rgba(217,119,6,.1)">📊</div>
+          <span class="card-ttl">카테고리별 통계</span>
+          <span id="classifyCount" style="margin-left:auto;font-size:12px;color:var(--t3);font-weight:600"></span>
+        </div>
+        <div class="card-body">
+          <div style="margin-bottom:14px">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;margin-bottom:4px">
+              <input type="checkbox" id="includeUnclassified" onchange="toggleUnclassified()" style="width:16px;height:16px;accent-color:var(--ac);cursor:pointer">
+              미분류 건 포함
+            </label>
+            <p style="font-size:11px;color:var(--t3);margin:0;margin-left:22px">(미분류 건은 통계에 포함되지 않습니다)</p>
+          </div>
+          <div id="catStatsGrid"></div>
+        </div>
+      </div>
+
+      <!-- CARD: 분류 결과 테이블 -->
+      <div class="card fuv d2" id="classifyCard">
+        <div class="card-hdr">
+          <div class="card-ico" style="background:rgba(217,119,6,.1)">⚙️</div>
+          <span class="card-ttl">분류 결과</span>
+        </div>
+
+        <div style="padding:16px 22px 0">
+          <p style="font-size:13px;color:var(--t2);margin-bottom:16px;line-height:1.6">
+            자동 분류된 결과를 확인하고, 드롭다운으로 카테고리를 직접 변경할 수 있습니다.
+          </p>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 22px 16px">
+          <button class="notion-btn" onclick="switchStep(1)">규칙 수정</button>
+          <button class="notion-btn primary" onclick="completeStep3()">데이터 검토로 이동</button>
+        </div>
+
+        <div class="card-body" style="padding-bottom:0">
+
+          <!-- FILTER BAR -->
+          <div style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r12);padding:12px 16px;margin-bottom:16px">
+            <div id="classifyFilterBar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+              <input id="filterQuery" type="text" class="tbl-input"
+                placeholder="설명·메모 검색..."
+                style="flex:1;min-width:160px;padding:9px 12px;font-size:13px;background:var(--s1);border:2px solid var(--ac);border-radius:var(--r8)"
+                oninput="setFilterQuery(this.value)">
+              <select id="filterCategory" class="tbl-input"
+                style="width:130px;padding:7px 8px;font-size:13px"
+                onchange="setFilterCategory(this.value)">
+                <option value="">전체 카테고리</option>
+              </select>
+              <div style="display:flex;gap:4px">
+                <button id="fltAll"    class="filter-chip active"  onclick="setFilterMode('all')">전체</button>
+                <button id="fltAuto"   class="filter-chip"         onclick="setFilterMode('auto')">자동</button>
+                <button id="fltManual" class="filter-chip"         onclick="setFilterMode('manual')">수동</button>
+              </div>
+              <span id="filterResultCount" style="font-size:12px;color:var(--t3);font-weight:600;white-space:nowrap"></span>
+            </div>
+          </div>
+
+          <div class="tbl-scroll">
+            <table id="classifyTable" style="min-width:980px">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>날짜</th>
+                  <th>설명</th>
+                  <th>메모</th>
+                  <th style="text-align:right">금액</th>
+                  <th style="min-width:120px">카테고리</th>
+                  <th style="width:70px;text-align:center">분류</th>
+                </tr>
+              </thead>
+              <tbody id="classifyBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="step-content">
+      <!-- 데이터 검토 + 거래내역 테이블 -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-hdr">
+          <div class="card-ico" style="background:rgba(232,101,10,.1)">📋</div>
+          <span class="card-ttl">데이터 검토</span>
+          <span id="excludeCountBadge" style="margin-left:auto;font-size:12px;color:var(--t3);font-weight:600"></span>
+        </div>
+
+        <div style="padding:16px 22px 0">
+          <p style="font-size:13px;color:var(--t2);margin-bottom:16px">리포트에서 제외할 거래내역을 선택하세요. 제외된 항목은 수익 계산에 포함되지 않습니다.</p>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 22px 16px">
+          <button class="notion-btn" onclick="exportReviewData()" style="font-size:13px;padding:7px 14px">📋 내보내기</button>
+          <button class="notion-btn" style="background:var(--rd);color:#fff;font-size:14px;padding:10px 24px" onclick="completeStep4()">리포트 생성</button>
+        </div>
+
+        <div class="card-body">
+          <div class="tbl-scroll">
+            <table class="table" style="width:100%">
+              <thead>
+                <tr>
+                  <th style="width:40px;color:var(--t3)">#</th>
+                  <th style="min-width:90px">날짜</th>
+                  <th style="min-width:200px">설명</th>
+                  <th style="min-width:150px">메모</th>
+                  <th style="min-width:110px;text-align:right">금액</th>
+                  <th style="min-width:100px">카테고리</th>
+                  <th style="width:80px;text-align:center">제외</th>
+                </tr>
+              </thead>
+              <tbody id="excludeBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 제외된 항목 (접을 수 있는 섹션, 기본 숨김) -->
+      <div class="card" id="excludedListCard" style="margin-bottom:16px;display:none">
+        <div class="card-hdr" style="cursor:pointer" onclick="toggleExcludedSection()">
+          <div class="card-ico" style="background:rgba(220,38,38,.08)">📋</div>
+          <span class="card-ttl">제외된 항목</span>
+          <span id="excludedCountBadge" style="margin-left:8px;font-size:12px;background:var(--rd);color:#fff;padding:2px 8px;border-radius:var(--r24)"></span>
+          <span id="excludedToggleIcon" style="margin-left:auto;font-size:14px;color:var(--t3)">▼</span>
+        </div>
+        <div id="excludedListBody" class="card-body">
+          <div class="tbl-scroll">
+            <table class="table" style="width:100%">
+              <thead>
+                <tr>
+                  <th style="width:40px;color:var(--t3)">#</th>
+                  <th style="min-width:90px">날짜</th>
+                  <th style="min-width:200px">설명</th>
+                  <th style="min-width:150px">메모</th>
+                  <th style="min-width:110px;text-align:right">금액</th>
+                  <th style="min-width:100px">카테고리</th>
+                  <th style="width:80px;text-align:center">복원</th>
+                </tr>
+              </thead>
+              <tbody id="excludedBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-content">
+
+      <!-- 기간 필터 + 액션 버튼 -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-hdr">
+          <div class="card-ico" style="background:rgba(22,163,74,.1)">📈</div>
+          <span class="card-ttl">리포트</span>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="notion-btn" onclick="copyReportText()" style="font-size:13px;padding:7px 14px">📋 복사</button>
+            <button class="notion-btn primary" onclick="openPdfOptionsModal()" style="font-size:13px;padding:7px 14px;display:none">⬇ PDF</button>
+          </div>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;height:100%">
+          <!-- 기간 선택 칩 (sticky로 고정됨) -->
+          <div id="reportPeriodBar"></div>
+
+          <!-- 미분류 거래 경고 배너 -->
+          <div id="reportUnclassifiedBanner"></div>
+
+          <!-- 모든 연도·월 섹션이 여기에 렌더링됨 (스크롤 영역) -->
+          <div id="reportAllSections" style="overflow-y:auto;flex:1"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 임시 컨테이너들 (section 빌드 시 사용) -->
+    <div style="display:none">
+      <div id="reportSummaryBar"></div>
+      <div id="reportInsightRow"></div>
+      <div id="reportCatDetailsContainer"></div>
+    </div>
+
+    <!-- MODAL: RULE ADD/EDIT -->
+    <div class="mo-ov" id="mo_rule" onclick="moOut(event)">
+      <div class="mo">
+        <div class="mo-hdr">
+          <span class="mo-ttl" id="mo_title">규칙 추가</span>
+          <button class="mo-x" onclick="closeRuleModal()">✕</button>
+        </div>
+        <p class="mo-desc">새로운 분류 규칙을 추가합니다. 입력한 키워드가 거래내역에 포함되면 선택한 카테고리로 분류됩니다.</p>
+
+        <div class="mo-body">
+          <div class="ig-field">
+            <label>카테고리</label>
+            <input type="text" id="mo_category" placeholder="새로운 카테고리명 입력" style="font-size:13px;padding:10px;border:1px solid var(--b2);border-radius:var(--r4);font-family:'DM Sans',sans-serif">
+          </div>
+          <div class="ig-field">
+            <label>키워드 (쉼표로 구분, 예: airbnb, 수익, 오늘의 수익)</label>
+            <textarea id="mo_keywords" rows="4" placeholder="각 줄에 하나씩 또는 쉼표로 구분" style="font-family:'DM Sans',sans-serif;font-size:13px;padding:10px;border:1px solid var(--b2);border-radius:var(--r4);resize:vertical"></textarea>
+          </div>
+
+          <!-- 색상 선택 -->
+          <div class="ig-field">
+            <label>색상</label>
+            <div id="mo_colors" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"></div>
+          </div>
+
+          <!-- 유형 선택 -->
+          <div class="ig-field">
+            <label>유형</label>
+            <div style="display:flex;gap:12px;margin-top:4px">
+              <label style="display:flex;align-items:center;gap:4px;font-size:13px">
+                <input type="radio" name="mo_type" value="income"> 수익
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;font-size:13px">
+                <input type="radio" name="mo_type" value="expense"> 지출
+              </label>
+            </div>
+          </div>
+
+          <div style="font-size:12px;color:var(--t3);margin-bottom:8px" id="mo_info"></div>
+        </div>
+
+        <div class="mo-warn" id="mo_warn" style="display:none"></div>
+
+        <div class="mo-acts">
+          <button class="mo-btn p" onclick="saveRule()">저장</button>
+          <button class="mo-btn s" onclick="closeRuleModal()">취소</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: 금액 부호 불일치 경고 -->
+    <div class="mo-ov" id="mo_mismatch" onclick="if(event.target===this)closeMismatchModal()">
+      <div class="mo" style="max-width:min(900px,85vw);max-height:85vh;overflow-y:auto">
+        <div class="mo-hdr">
+          <span class="mo-ttl">⚠️ 금액 부호 불일치</span>
+          <button class="mo-x" onclick="closeMismatchModal()">✕</button>
+        </div>
+        <p class="mo-desc" style="line-height:1.6">금액의 부호(양수/음수)와 카테고리의 수익/지출 구분이 맞지 않는 거래가 있습니다.<br>아래 목록을 확인하고 처리 방법을 선택하세요.</p>
+
+        <div class="mo-body">
+          <div id="mismatchBody"></div>
+        </div>
+
+        <div class="mo-acts" style="gap:10px">
+          <button class="mo-btn p" onclick="excludeMismatched()" style="background:var(--rd)">제외하기</button>
+          <button class="mo-btn s" onclick="ignoreMismatch()">무시하고 진행</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: IMPORT RULES -->
+    <div class="mo-ov" id="mo_importRules" style="display:none" onclick="if(event.target===this)closeImportRulesModal()">
+      <div class="mo" style="max-width:700px">
+        <div class="mo-hdr">
+          <span class="mo-ttl">규칙 불러오기</span>
+          <button class="mo-x" onclick="closeImportRulesModal()">✕</button>
+        </div>
+        <p class="mo-desc" style="line-height:1.6">각 줄에 하나의 규칙을 입력하세요.<br><strong>형식: 카테고리 | 키워드(쉼표로 구분) | type(income/expense)</strong></p>
+        <p style="font-size:12px;color:var(--t3);margin-bottom:12px">예: 수입 | airbnb,수익,booking | income</p>
+        <textarea id="ruleInputText" style="width:100%;height:300px;padding:12px;border:1px solid var(--b1);border-radius:var(--r8);font-family:monospace;font-size:12px;resize:vertical;margin-bottom:16px" placeholder="수입 | airbnb,수익,booking | income&#10;월세 | 월세,rent,전월세 | expense&#10;청소비 | 청소,cleaning,세탁 | expense"></textarea>
+        <div class="mo-acts">
+          <button class="mo-btn s" onclick="closeImportRulesModal()">취소</button>
+          <button class="mo-btn p" onclick="importRulesFromText()">불러오기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: PDF EXPORT OPTIONS -->
+    <div class="mo-ov" id="mo_pdfOptions" onclick="if(event.target===this)closePdfOptionsModal()">
+      <div class="mo">
+        <div class="mo-hdr">
+          <span class="mo-ttl">⬇ PDF 내보내기</span>
+          <button class="mo-x" onclick="closePdfOptionsModal()">✕</button>
+        </div>
+        <p class="mo-desc">PDF에 포함할 내용을 선택하세요.</p>
+
+        <div class="mo-body">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;background:var(--s2);border-radius:var(--r8)">
+              <input type="radio" name="pdfOption" value="full" checked style="cursor:pointer">
+              <div>
+                <div style="font-weight:600;color:var(--t1)">전체 보고서 (권장)</div>
+                <div style="font-size:12px;color:var(--t3)">KPI, 차트, 카테고리별 상세 포함</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;background:var(--s2);border-radius:var(--r8)">
+              <input type="radio" name="pdfOption" value="summary" style="cursor:pointer">
+              <div>
+                <div style="font-weight:600;color:var(--t1)">요약 보고서</div>
+                <div style="font-size:12px;color:var(--t3)">KPI와 차트만 포함 (카테고리별 상세 제외)</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="mo-acts" style="gap:10px">
+          <button class="mo-btn s" onclick="closePdfOptionsModal()">취소</button>
+          <button class="mo-btn s" onclick="previewPdfContent()">👁 미리보기</button>
+          <button class="mo-btn p" onclick="executePdfExport()">⬇ PDF 내보내기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF 미리보기 모달 -->
+    <div class="mo-ov" id="mo_pdfPreview" onclick="if(event.target===this)closePdfPreviewModal()">
+      <div class="mo" style="width:820px;max-width:90vw;max-height:90vh;overflow-y:auto">
+        <div class="mo-hdr">
+          <span class="mo-ttl">👁 PDF 미리보기</span>
+          <button class="mo-x" onclick="closePdfPreviewModal()">✕</button>
+        </div>
+        <div class="mo-body" id="pdfPreviewContent" style="background:#fff;border:1px solid var(--b2);border-radius:var(--r8);padding:20px;overflow-y:auto;max-height:calc(90vh - 120px)">
+          <!-- 미리보기 내용이 여기 삽입됨 -->
+        </div>
+        <div class="mo-acts">
+          <button class="mo-btn s" onclick="closePdfPreviewModal()">취소</button>
+          <button class="mo-btn p" onclick="downloadPdfFromPreview()">⬇ PDF 다운로드</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <div id="toast"></div>
+
+  <script>
+    /* ── DATA MODEL ── */
+    const state = {
+      rawData: [],
+      columnMap: {},
+      transactions: [],
+      rules: [],
+      excludedIds: new Set()
+    };
+
+    const filterState = {
+      query: '',                    // 설명·메모 텍스트 검색
+      category: '',                 // '' = 전체
+      mode: 'all',                  // 'all' | 'auto' | 'manual'
+      includeUnclassified: false    // 미분류건 포함 여부
+    };
+
+    const CATEGORIES = ['수입', '월세', '청소비', '관리비', '시설투자비', '세금', '소모품', '기타'];
+    const DEFAULT_RULES = [
+      { category: '수입', keywords: ['airbnb', '수익'], isDefault: true, colorIdx: 0, type: 'income' },
+      { category: '월세', keywords: ['월세', 'rent'], isDefault: true, colorIdx: 1, type: 'expense' },
+      { category: '청소비', keywords: ['청소', 'cleaning'], isDefault: true, colorIdx: 2, type: 'expense' },
+      { category: '관리비', keywords: ['관리', '관리비'], isDefault: true, colorIdx: 3, type: 'expense' },
+      { category: '시설투자비', keywords: ['구매', '투자'], isDefault: true, colorIdx: 4, type: 'expense' },
+      { category: '세금', keywords: ['세금', 'tax'], isDefault: true, colorIdx: 5, type: 'expense' },
+      { category: '소모품', keywords: ['소모', '용품'], isDefault: true, colorIdx: 8, type: 'expense' }
+    ];
+
+    // 색상 팔레트 (사용자 선택용)
+    const COLOR_PALETTE = [
+      { bg: 'rgba(22,163,74,.12)',  fg: '#16a34a', name: '초록' },
+      { bg: 'rgba(37,99,235,.12)',  fg: '#2563eb', name: '파랑' },
+      { bg: 'rgba(217,119,6,.12)',  fg: '#d97706', name: '황금' },
+      { bg: 'rgba(232,101,10,.12)', fg: '#e8650a', name: '주황' },
+      { bg: 'rgba(168,85,247,.12)', fg: '#a855f7', name: '보라' },
+      { bg: 'rgba(220,38,38,.12)',  fg: '#dc2626', name: '빨강' },
+      { bg: 'rgba(236,72,153,.12)', fg: '#ec4899', name: '분홍' },
+      { bg: 'rgba(14,165,233,.12)', fg: '#0ea5e9', name: '하늘' },
+      { bg: 'rgba(20,184,166,.12)', fg: '#14b8a6', name: '청록' },
+      { bg: 'var(--s3)',            fg: 'var(--t2)', name: '회색' }
+    ];
+
+    // 카테고리 배지 색상 (기본 카테고리 순서대로) — deprecated, getCategoryColor() 사용
+    const CATEGORY_COLORS = [
+      { bg: 'rgba(22, 163, 74, 0.1)', fg: '#16a34a' },    // 수입 (green)
+      { bg: 'rgba(37, 99, 235, 0.1)', fg: '#2563eb' },    // 월세 (blue)
+      { bg: 'rgba(217, 119, 6, 0.1)', fg: '#d97706' },    // 청소비 (amber)
+      { bg: 'rgba(232, 101, 10, 0.1)', fg: '#e8650a' },   // 관리비 (orange)
+      { bg: 'rgba(168, 85, 247, 0.1)', fg: '#a855f7' },   // 시설투자비 (purple)
+      { bg: 'rgba(220, 38, 38, 0.1)', fg: '#dc2626' },    // 세금 (red)
+      { bg: 'rgba(22, 163, 74, 0.1)', fg: '#16a34a' },    // 소모품 (green)
+      { bg: 'var(--s3)', fg: 'var(--t2)' }                // 기타 (neutral)
+    ];
+
+    // 카테고리별 색상 조회 함수
+    function getCategoryColor(category) {
+      // 규칙에서 colorIdx가 있으면 우선 사용
+      const rule = state.rules.find(r => r.category === category);
+      if (rule && rule.colorIdx !== undefined) {
+        return COLOR_PALETTE[rule.colorIdx];
+      }
+      // fallback: 해시 기반으로 팔레트 순환
+      const hash = category.charCodeAt(0) + category.length;
+      return COLOR_PALETTE[hash % (COLOR_PALETTE.length - 1)];
+    }
+
+    /* ── UI NAVIGATION ── */
+    function switchStep(step) {
+      // Step 3 직접 접근 시 방어
+      if (step === 2) {
+        if (state.transactions.length === 0) {
+          toast('먼저 데이터를 입력하세요 (Step 1)');
+          return;
+        }
+        applyClassification();
+        renderClassificationTable();
+        renderCategoryStats();
+      }
+
+      // Step 4 진입 시 제외 테이블 렌더링
+      if (step === 3) {
+        renderExcludeTable();
+        renderExcludedList();
+      }
+
+      // Step 4는 completeStep4()에서만 렌더링
+
+      const contents = document.querySelectorAll('.step-content');
+      const tabs = document.querySelectorAll('.step-tab');
+
+      contents.forEach((c, i) => {
+        c.classList.toggle('active', i === step);
+      });
+
+      tabs.forEach((t, i) => {
+        t.classList.toggle('active', i === step);
+      });
+    }
+
+    /* ── PARSE DATA ── */
+    function parseData() {
+      const raw = document.getElementById('rawInput').value.trim();
+      if (!raw) {
+        showMsg('parseMsg', '데이터를 입력하세요', 'error');
+        return;
+      }
+
+      const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) {
+        showMsg('parseMsg', '최소 2줄 (헤더 + 데이터) 필요합니다', 'error');
+        return;
+      }
+
+      const delimiter = lines[0].includes('\t') ? '\t' : ',';
+      state.rawData = lines.map(line => line.split(delimiter).map(cell => cell.trim()));
+
+      const headers = state.rawData[0];
+      const selects = ['colDate', 'colDesc', 'colAmount', 'colMemo'];
+      selects.forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">선택</option>';
+        headers.forEach((h, i) => {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = h || `(빈 헤더 - 열${i})`;
+          sel.appendChild(opt);
+        });
+      });
+
+      // 유사성 점수 계산 함수
+      function calculateSimilarity(headerText, keywords) {
+        const lower = headerText.toLowerCase();
+        let maxScore = 0;
+
+        for (const kw of keywords) {
+          const kwLower = kw.toLowerCase();
+          if (lower === kwLower) {
+            maxScore = 100;
+            break;
+          }
+          if (lower.includes(kwLower) || kwLower.includes(lower)) {
+            maxScore = Math.max(maxScore, 80);
+          }
+        }
+
+        return maxScore;
+      }
+
+      // 자동 매핑 설정
+      const columnConfig = {
+        colDate: ['날짜', 'date', '일자', '거래날짜', '일시'],
+        colDesc: ['내용', 'description', 'desc', '거래내용', '거래 내용', '적요'],
+        colAmount: ['금액', 'amount', '거래금액', '거래 금액', '합계'],
+        colMemo: ['메모', 'note', '비고', '기타', 'memo']
+      };
+
+      // 각 컬럼에 대해 가장 유사한 헤더 찾기
+      Object.entries(columnConfig).forEach(([colId, keywords]) => {
+        let bestMatch = -1;
+        let bestScore = 0;
+
+        headers.forEach((h, i) => {
+          const score = calculateSimilarity(h, keywords);
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = i;
+          }
+        });
+
+        if (bestMatch >= 0 && bestScore > 0) {
+          document.getElementById(colId).value = bestMatch;
+        }
+      });
+
+      state.totalDataRows = lines.length - 1; // 헤더 제외한 데이터 행 수
+      state.excludedRows = [];
+
+      document.getElementById('mapCard').style.display = 'block';
+      document.getElementById('previewCard').style.display = 'none';
+      showMsg('parseMsg', `${lines.length}개 줄 파싱 완료 (데이터 ${state.totalDataRows}개 행)`, 'success');
+
+    }
+
+    function updateMapping() {
+      // 실시간 업데이트 (선택)
+    }
+
+    function confirmMapping() {
+      const dateIdx = parseInt(document.getElementById('colDate').value);
+      const amountIdx = parseInt(document.getElementById('colAmount').value);
+      const descIdx = parseInt(document.getElementById('colDesc').value);
+      const memoIdx = parseInt(document.getElementById('colMemo').value);
+
+      if (isNaN(dateIdx) || isNaN(descIdx) || isNaN(amountIdx)) {
+        showMsg('mapMsg', '날짜, 거래 내용, 금액은 필수입니다', 'error');
+        return;
+      }
+
+      state.columnMap = {
+        date: dateIdx,
+        desc: descIdx >= 0 ? descIdx : null,
+        amount: amountIdx,
+        memo: memoIdx >= 0 ? memoIdx : null
+      };
+
+      buildTransactions();
+
+      // 제외된 행이 있으면 모달 표시
+      if (state.excludedRows && state.excludedRows.length > 0) {
+        showExcludedRowsModal();
+      }
+
+      renderPreview();
+
+      document.getElementById('mapCard').style.display = 'none';
+      document.getElementById('previewCard').style.display = 'block';
+    }
+
+    function showExcludedRowsModal() {
+      const modal = document.getElementById('mo_excluded');
+      const tbody = document.getElementById('excludedParsingBody');
+
+      if (!modal || !tbody) return;
+
+      // 헤더 정보 (첫 번째 제외된 행에서 컬럼명 가져오기)
+      const headers = state.rawData[0] || [];
+
+      tbody.innerHTML = state.excludedRows.map(row => {
+        const rawRowHtml = row.rawRow && row.rawRow.length > 0
+          ? `<div style="margin-top:10px;padding:10px;background:var(--s2);border-radius:var(--r8);font-size:11px;color:var(--t2);max-height:150px;overflow-y:auto">
+              <div style="font-weight:600;margin-bottom:8px;color:var(--t1)">📋 파싱 전 원본 데이터:</div>
+              ${row.rawRow.map((val, i) => `
+                <div style="margin-bottom:6px;display:flex;gap:8px">
+                  <span style="color:var(--t3);min-width:80px;white-space:nowrap"><strong>${esc(headers[i] || `컬럼${i}`)}</strong></span>
+                  <span style="flex:1;word-break:break-all">${esc(val || '-')}</span>
+                </div>
+              `).join('')}
+            </div>`
+          : '';
+
+        return `
+          <tr>
+            <td style="text-align:center;color:var(--t3);font-size:12px;vertical-align:top;padding:10px">${row.rowIndex}</td>
+            <td style="font-size:12px;vertical-align:top;padding:10px">
+              <div style="color:var(--am);font-weight:600;margin-bottom:6px">${esc(row.reason)}</div>
+              <div style="font-size:11px;color:var(--t2)">
+                <div><strong>날짜:</strong> ${esc(row.data.date || '-')}</div>
+                <div><strong>금액:</strong> ${esc(row.data.amount)}</div>
+                <div><strong>설명:</strong> ${esc(row.data.desc)}</div>
+              </div>
+              ${rawRowHtml}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      modal.classList.add('open');
+    }
+
+    function closeExcludedModal() {
+      const modal = document.getElementById('mo_excluded');
+      if (modal) {
+        modal.classList.remove('open');
+      }
+    }
+
+    /* ── DATE NORMALIZATION ── */
+    function normalizeDate(dateStr) {
+      // 다양한 날짜 형식을 YYYY-MM-DD로 정규화
+      // 2025.10.28 15:55:32 → 2025-10-28
+      // 2025-10-28 → 2025-10-28
+      // 28.10.2025 → 2025-10-28
+      dateStr = String(dateStr).trim();
+      if (!dateStr) return '';
+
+      // 시간 부분 제거 (공백 이후 모두 제거)
+      const dateOnly = dateStr.split(' ')[0];
+
+      // 구분자를 '-'로 통일
+      const normalized = dateOnly.replace(/[.\-\/]/g, '-');
+      const parts = normalized.split('-').filter(p => p);
+
+      if (parts.length < 3) return '';
+
+      let year, month, day;
+
+      // YYYY-MM-DD 형식 (또는 YYYY-??-??)
+      if (parts[0].length === 4) {
+        year = parts[0];
+        month = String(parts[1]).padStart(2, '0');
+        day = String(parts[2]).padStart(2, '0');
+      }
+      // DD-MM-YYYY 형식 (또는 ??-??-YYYY)
+      else if (parts[2]?.length === 4) {
+        year = parts[2];
+        month = String(parts[1]).padStart(2, '0');
+        day = String(parts[0]).padStart(2, '0');
+      }
+      else {
+        return '';
+      }
+
+      return `${year}-${month}-${day}`;
+    }
+
+    function buildTransactions() {
+      state.transactions = [];
+      state.excludedRows = [];
+      const rows = state.rawData.slice(1);
+
+      rows.forEach((row, idx) => {
+        const dateRaw = row[state.columnMap.date] || '';
+        const date = normalizeDate(dateRaw);
+        const amount = parseFloat((row[state.columnMap.amount] || '0').replace(/[₩,]/g, ''));
+        const desc = state.columnMap.desc !== null ? (row[state.columnMap.desc] || '') : '';
+        const memo = state.columnMap.memo !== null ? (row[state.columnMap.memo] || '') : '';
+        const rawAmount = row[state.columnMap.amount] || '0';
+
+        // 제외 사유 확인
+        let excludeReason = null;
+        if (!date) excludeReason = '날짜 파싱 실패';
+        else if (isNaN(amount)) excludeReason = `금액 파싱 실패: "${rawAmount}"`;
+        else if (amount === 0) excludeReason = '금액이 0';
+
+        if (excludeReason) {
+          state.excludedRows.push({
+            rowIndex: idx + 2, // 원본 행 번호 (헤더 제외)
+            reason: excludeReason,
+            data: {
+              date: dateRaw,
+              desc,
+              amount: rawAmount,
+              memo
+            },
+            rawRow: row // 전체 원본 행 데이터
+          });
+          return;
+        }
+
+        state.transactions.push({
+          id: idx,
+          date,
+          desc,
+          amount,
+          memo,
+          category: null,
+          ruleMatched: null,
+          excluded: false
+        });
+      });
+
+      if (state.transactions.length === 0) {
+        showMsg('mapMsg', '유효한 거래내역이 없습니다', 'error');
+        return;
+      }
+
+      const msg = state.excludedRows.length > 0
+        ? `${state.transactions.length}개 거래내역 추출 완료 (${state.excludedRows.length}개 행 제외)`
+        : `${state.transactions.length}개 거래내역 추출 완료`;
+      showMsg('mapMsg', msg, state.excludedRows.length > 0 ? 'warning' : 'success');
+    }
+
+    function renderPreview() {
+      const body = document.getElementById('previewBody');
+      body.innerHTML = '';
+
+      state.transactions.slice(0, 50).forEach((tx, idx) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${esc(tx.date)}</td>
+          <td>${esc(tx.desc)}</td>
+          <td class="amt-cell">${fmtN(tx.amount)}</td>
+          <td>${esc(tx.memo)}</td>
+        `;
+        body.appendChild(row);
+      });
+
+      const total = state.transactions.reduce((sum, tx) => sum + tx.amount, 0);
+      document.getElementById('statCount').textContent = `${state.transactions.length}건`;
+      document.getElementById('statSum').textContent = `₩${fmtN(total)}`;
+
+      if (state.transactions.length > 50) {
+        const moreRow = document.createElement('tr');
+        moreRow.innerHTML = `<td colspan="5" style="text-align:center;color:var(--t2);padding:10px">... 외 ${state.transactions.length - 50}개</td>`;
+        body.appendChild(moreRow);
+      }
+    }
+
+    function backToMap() {
+      document.getElementById('mapCard').style.display = 'block';
+      document.getElementById('previewCard').style.display = 'none';
+    }
+
+    function backToParse() {
+      document.getElementById('mapCard').style.display = 'none';
+      document.getElementById('previewCard').style.display = 'none';
+    }
+
+    function completeStep1() {
+      if (state.transactions.length === 0) {
+        toast('거래내역이 없습니다');
+        return;
+      }
+      initRules();  // Step 2로 이동 시 규칙 초기화
+      switchStep(1);
+      toast('Step 1 완료! 다음 단계로 이동');
+    }
+
+    function resetAll() {
+      state.rawData = [];
+      state.columnMap = {};
+      state.transactions = [];
+      state.excludedIds.clear();
+
+      document.getElementById('rawInput').value = '';
+      document.getElementById('mapCard').style.display = 'none';
+      document.getElementById('previewCard').style.display = 'none';
+      document.querySelectorAll('[id$="Msg"]').forEach(el => {
+        el.style.display = 'none';
+      });
+
+      switchStep(0);
+      toast('초기화 완료');
+    }
+
+    /* ── RULE MANAGEMENT ── */
+    let editingCategory = null;
+
+    function initRules() {
+      state.rules = JSON.parse(JSON.stringify(DEFAULT_RULES));
+      state.rules.forEach(r => r.isActive = true);
+      renderRules();
+    }
+
+    function renderRules() {
+      const body = document.getElementById('rulesBody');
+      body.innerHTML = state.rules.map((r, idx) => {
+        const color = getCategoryColor(r.category);
+        const typeText = r.type === 'income' ? '<span style="color:var(--gr);font-weight:700">수익</span>' : '<span style="color:var(--rd);font-weight:700">지출</span>';
+        return `
+        <tr class="${!r.isActive ? 'disabled-row' : ''}">
+          <td style="text-align:center;padding:8px">
+            <input type="checkbox" ${r.isActive ? 'checked' : ''} onchange="toggleCategory('${r.category}')"
+                   style="width:16px;height:16px;accent-color:var(--ac);cursor:pointer">
+          </td>
+          <td style="padding:8px"><span class="cat-badge" style="background:${color.bg};color:${color.fg}">${r.category}</span></td>
+          <td style="padding:8px;text-align:center">${typeText}</td>
+          <td style="padding:8px;text-align:left;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            ${r.keywords.map(k => `<span style="display:inline-block;background:var(--s2);padding:4px 8px;border-radius:4px;margin-right:6px;font-size:12px">${esc(k)}</span>`).join('')}
+          </td>
+          <td style="padding:8px;text-align:center;font-size:13px">
+            <button class="del-btn" onclick="openRuleModal('${r.category}')" title="수정" style="font-size:13px">✎</button>
+            ${!r.isDefault ? `<button class="del-btn" onclick="deleteRule('${r.category}')" title="삭제">✕</button>` : ''}
+          </td>
+        </tr>
+        `;
+      }).join('');
+    }
+
+    function openRuleModal(category) {
+      const rule = category ? state.rules.find(r => r.category === category) : null;
+      editingCategory = category || null;
+
+      document.getElementById('mo_title').textContent = rule ? `${rule.category} 수정` : '규칙 추가';
+      document.getElementById('mo_warn').style.display = 'none';
+      document.getElementById('mo_warn').textContent = '';
+
+      const catInput = document.getElementById('mo_category');
+      const keywordsInput = document.getElementById('mo_keywords');
+
+      if (rule) {
+        // 편집 모드
+        catInput.value = rule.category;
+        catInput.readOnly = true;
+        catInput.style.backgroundColor = 'var(--s2)';
+        keywordsInput.value = rule.keywords.join(', ');
+        keywordsInput.readOnly = false;
+        keywordsInput.style.backgroundColor = '';
+        keywordsInput.placeholder = '각 줄에 하나씩 또는 쉼표로 구분';
+        document.getElementById('mo_info').textContent = '편집 모드에서는 카테고리를 변경할 수 없습니다';
+      } else {
+        // 추가 모드
+        catInput.value = '';
+        catInput.readOnly = false;
+        catInput.style.backgroundColor = '';
+        keywordsInput.value = '';
+        keywordsInput.readOnly = false;
+        keywordsInput.style.backgroundColor = '';
+        keywordsInput.placeholder = '각 줄에 하나씩 또는 쉼표로 구분';
+        document.getElementById('mo_info').textContent = '';
+      }
+
+      // 색상 팔레트 초기화
+      const colorsContainer = document.getElementById('mo_colors');
+      colorsContainer.innerHTML = COLOR_PALETTE.map((color, idx) => `
+        <div class="color-swatch ${rule && rule.colorIdx === idx ? 'selected' : ''}"
+             data-idx="${idx}"
+             style="width:32px;height:32px;border-radius:4px;background:${color.bg};border:2px solid ${rule && rule.colorIdx === idx ? color.fg : 'transparent'};cursor:pointer;transition:all .2s"
+             onclick="selectColor(${idx})"
+             title="${color.name}"></div>
+      `).join('');
+
+      // 기본값 설정 (새 규칙은 첫 번째 색상, 첫 번째 색상 선택)
+      if (!rule && COLOR_PALETTE.length > 0) {
+        const firstSwatch = colorsContainer.querySelector('[data-idx="0"]');
+        if (firstSwatch) {
+          firstSwatch.classList.add('selected');
+          firstSwatch.style.border = `2px solid ${COLOR_PALETTE[0].fg}`;
+        }
+      }
+
+      // 유형 라디오 버튼 초기화
+      const selectedType = rule ? rule.type : 'expense';
+      document.querySelectorAll('input[name="mo_type"]').forEach(radio => {
+        radio.checked = radio.value === selectedType;
+      });
+
+      document.getElementById('mo_rule').classList.add('open');
+      catInput.focus();
+    }
+
+    function selectColor(idx) {
+      // 모든 스와치에서 selected 클래스 제거
+      document.querySelectorAll('.color-swatch').forEach(swatch => {
+        swatch.classList.remove('selected');
+        const swatchIdx = parseInt(swatch.dataset.idx);
+        swatch.style.border = `2px solid transparent`;
+      });
+      // 선택된 스와치에 selected 클래스 추가 및 테두리 표시
+      const selectedSwatch = document.querySelector(`.color-swatch[data-idx="${idx}"]`);
+      if (selectedSwatch) {
+        selectedSwatch.classList.add('selected');
+        selectedSwatch.style.border = `2px solid ${COLOR_PALETTE[idx].fg}`;
+      }
+    }
+
+    function closeRuleModal() {
+      document.getElementById('mo_rule').classList.remove('open');
+      editingCategory = null;
+    }
+
+    function moOut(e) {
+      if (e.target === document.getElementById('mo_rule')) closeRuleModal();
+    }
+
+    function updateCategoryInfo() {
+      const cat = document.getElementById('mo_category').value;
+      const existing = state.rules.find(r => r.category === cat && !editingCategory);
+      if (existing) {
+        document.getElementById('mo_info').textContent = `현재 키워드: ${existing.keywords.join(', ')}`;
+      } else {
+        document.getElementById('mo_info').textContent = '';
+      }
+    }
+
+    function saveRule() {
+      const category = document.getElementById('mo_category').value.trim();
+      const keywordsText = document.getElementById('mo_keywords').value.trim();
+
+      if (!category) {
+        showWarn('카테고리명을 입력하세요');
+        return;
+      }
+
+      if (!keywordsText) {
+        showWarn('최소 하나의 키워드를 입력하세요');
+        return;
+      }
+
+      // 키워드 정규화 (쉼표 또는 줄바꿈으로 구분)
+      const keywords = keywordsText
+        .split(/[,\n]+/)
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k.length > 0);
+
+      if (keywords.length === 0) {
+        showWarn('유효한 키워드가 없습니다');
+        return;
+      }
+
+      // 중복 키워드 체크 (다른 카테고리)
+      for (const kw of keywords) {
+        const dup = state.rules.find(r => r.category !== category && r.keywords.includes(kw) && !r.isFallback);
+        if (dup) {
+          showWarn(`"${kw}"은(는) 이미 "${dup.category}"에 포함되어 있습니다`);
+          return;
+        }
+      }
+
+      // 중복 카테고리 체크 (편집 모드가 아닐 때)
+      if (!editingCategory) {
+        const existingCategory = state.rules.find(r => r.category === category);
+        if (existingCategory) {
+          showWarn(`"${category}" 카테고리가 이미 존재합니다`);
+          return;
+        }
+      }
+
+      // 색상과 유형 추출
+      const colorIdx = parseInt(document.querySelector('.color-swatch.selected')?.dataset.idx ?? 0);
+      const type = document.querySelector('input[name="mo_type"]:checked')?.value || 'expense';
+
+      if (editingCategory) {
+        // 수정
+        const rule = state.rules.find(r => r.category === editingCategory);
+        rule.keywords = keywords;
+        rule.colorIdx = colorIdx;
+        rule.type = type;
+      } else {
+        // 추가
+        state.rules.push({
+          category,
+          keywords,
+          isActive: true,
+          isDefault: false,
+          colorIdx,
+          type
+        });
+      }
+
+      renderRules();
+      closeRuleModal();
+      toast(editingCategory ? '규칙이 수정되었습니다' : '규칙이 추가되었습니다');
+    }
+
+    function toggleCategory(category) {
+      const rule = state.rules.find(r => r.category === category);
+      if (rule) {
+        rule.isActive = !rule.isActive;
+        renderRules();
+      }
+    }
+
+    function deleteRule(category) {
+      if (confirm(`"${category}" 규칙을 삭제하시겠습니까?`)) {
+        state.rules = state.rules.filter(r => r.category !== category);
+        renderRules();
+        toast('규칙이 삭제되었습니다');
+      }
+    }
+
+    function openImportRulesModal() {
+      console.log('[DEBUG] openImportRulesModal called');
+      const modal = document.getElementById('mo_importRules');
+      console.log('[DEBUG] modal element:', modal);
+      if (modal) {
+        modal.style.display = 'flex';
+        console.log('[DEBUG] modal display set to flex');
+        const textarea = document.getElementById('ruleInputText');
+        if (textarea) {
+          textarea.value = '';
+          textarea.focus();
+          console.log('[DEBUG] textarea focused');
+        }
+      } else {
+        console.error('[ERROR] mo_importRules element not found');
+      }
+    }
+
+    function closeImportRulesModal() {
+      document.getElementById('mo_importRules').style.display = 'none';
+    }
+
+    function importRulesFromText() {
+      const text = document.getElementById('ruleInputText').value.trim();
+      if (!text) {
+        toast('규칙 데이터를 입력해주세요');
+        return;
+      }
+
+      try {
+        const rules = [];
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+
+        lines.forEach((line, idx) => {
+          const parts = line.split('|').map(p => p.trim());
+          if (parts.length !== 3) {
+            throw new Error(`${idx + 1}번 줄: "카테고리 | 키워드 | type" 형식이어야 합니다`);
+          }
+
+          const [category, keywordsStr, type] = parts;
+
+          if (!category) throw new Error(`${idx + 1}번 줄: 카테고리가 필요합니다`);
+          if (!keywordsStr) throw new Error(`${idx + 1}번 줄: 키워드가 필요합니다`);
+          if (!['income', 'expense'].includes(type)) throw new Error(`${idx + 1}번 줄: type은 'income' 또는 'expense'이어야 합니다`);
+
+          const keywords = keywordsStr.split(',').map(k => k.trim()).filter(k => k);
+          if (keywords.length === 0) throw new Error(`${idx + 1}번 줄: 최소 1개 이상의 키워드가 필요합니다`);
+
+          rules.push({
+            category,
+            keywords,
+            type,
+            colorIdx: 0,
+            isActive: true
+          });
+        });
+
+        state.rules = rules;
+        renderRules();
+        closeImportRulesModal();
+        toast(`${rules.length}개 규칙이 불러워졌습니다`);
+      } catch (err) {
+        toast('규칙 파싱 실패: ' + err.message);
+      }
+    }
+
+    function resetRules() {
+      if (confirm('기본 규칙으로 초기화하시겠습니까? 사용자 규칙은 삭제됩니다.')) {
+        initRules();
+        renderRules();
+        toast('기본 규칙으로 초기화되었습니다');
+      }
+    }
+
+    /* ── CLASSIFICATION APPLY ── */
+    function applyClassification() {
+      state.transactions.forEach(tx => {
+        const haystack = (tx.desc + ' ' + (tx.memo || '')).toLowerCase();
+        const matched = state.rules.find(r =>
+          r.isActive && r.keywords.some(kw => haystack.includes(kw.toLowerCase()))
+        );
+
+        if (matched) {
+          tx.category = matched.category;
+          tx.ruleMatched = matched.category;
+        } else {
+          // 매칭된 규칙이 없으면 미분류 (category = null)
+          tx.category = null;
+          tx.ruleMatched = null;
+        }
+      });
+    }
+
+    /* ── FILTER FUNCTIONS ── */
+    function getFilteredTransactions() {
+      return state.transactions.filter(tx => {
+        if (filterState.query) {
+          const q = filterState.query.toLowerCase();
+          if (!(tx.desc + ' ' + (tx.memo || '')).toLowerCase().includes(q)) return false;
+        }
+        if (filterState.category && tx.category !== filterState.category) return false;
+        if (filterState.mode === 'auto' && tx.ruleMatched === null) return false;
+        if (filterState.mode === 'manual' && tx.ruleMatched !== null) return false;
+        return true;
+      });
+    }
+
+    function setFilterQuery(val) {
+      filterState.query = val.trim();
+      renderClassificationTable();
+    }
+
+    function setFilterCategory(val) {
+      filterState.category = val;
+      renderClassificationTable();
+    }
+
+    function setFilterMode(mode) {
+      filterState.mode = mode;
+      ['all', 'auto', 'manual'].forEach(m => {
+        const id = 'flt' + m.charAt(0).toUpperCase() + m.slice(1);
+        document.getElementById(id).classList.toggle('active', m === mode);
+      });
+      renderClassificationTable();
+    }
+
+    function renderClassificationTable() {
+      const body = document.getElementById('classifyBody');
+      if (!body) return;
+
+      // 모든 카테고리 수집 (기본 + 사용자 정의)
+      const allCategories = new Set([
+        ...CATEGORIES,
+        ...state.rules.map(r => r.category).filter(c => c !== null)
+      ]);
+      const sortedCategories = [...allCategories].sort();
+
+      // filterCategory select 초기화 (한 번만)
+      const catSel = document.getElementById('filterCategory');
+      if (catSel && catSel.options.length === 1) {
+        sortedCategories.forEach(cat => {
+          const opt = document.createElement('option');
+          opt.value = cat;
+          opt.textContent = cat;
+          catSel.appendChild(opt);
+        });
+      }
+
+      const filtered = getFilteredTransactions();
+      const classified = filtered.filter(tx => tx.category !== null);
+      const unclassified = filtered.filter(tx => tx.category === null);
+
+      // 불일치 거래 필터링 (금액 부호 vs 카테고리 타입)
+      const mismatched = classified.filter(tx => {
+        const rule = state.rules.find(r => r.category === tx.category);
+        if (!rule) return false;
+        return (rule.type === 'income' && tx.amount < 0) || (rule.type !== 'income' && tx.amount > 0);
+      });
+
+      // 정상 거래 (불일치 제외)
+      const normal = classified.filter(tx => !mismatched.includes(tx));
+
+      const frag = document.createDocumentFragment();
+
+      // 렌더링 함수
+      function renderTransactionRow(tx, idx) {
+        const tr = document.createElement('tr');
+        const opts = `<option value="">(미분류)</option>` +
+          sortedCategories.map(cat =>
+            `<option value="${cat}" ${tx.category === cat ? 'selected' : ''}>${cat}</option>`
+          ).join('');
+
+        const modeCell = tx.ruleMatched
+          ? `<span style="font-size:11px;font-weight:600;color:var(--t3)">자동</span>`
+          : `<span style="font-size:11px;font-weight:600;color:var(--am)">수동</span>`;
+
+        tr.innerHTML = `
+          <td style="color:var(--t3);font-size:12px">${idx + 1}</td>
+          <td style="font-size:13px;color:var(--t2);white-space:nowrap">${esc(tx.date)}</td>
+          <td style="font-size:13px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(tx.desc)}">${esc(tx.desc)}</td>
+          <td style="font-size:13px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t3)" title="${esc(tx.memo || '')}">${esc(tx.memo || '-')}</td>
+          <td class="amt-cell">${tx.amount < 0 ? '<span style="color:var(--rd)">' : '<span>'}₩${fmtN(Math.abs(tx.amount))}</span></td>
+          <td>
+            <select class="tbl-input" style="font-size:12px;padding:5px 6px;width:110px" onchange="changeTxCategory(${tx.id}, this.value)">
+              ${opts}
+            </select>
+          </td>
+          <td style="text-align:center">${modeCell}</td>
+        `;
+        return tr;
+      }
+
+      // 정상 거래 렌더링
+      normal.forEach((tx, idx) => {
+        frag.appendChild(renderTransactionRow(tx, idx));
+      });
+
+      // 불일치 섹션
+      if (mismatched.length > 0) {
+        const separatorTr = document.createElement('tr');
+        separatorTr.innerHTML = `
+          <td colspan="7" style="padding:24px 0;text-align:center;background:linear-gradient(135deg,rgba(220,38,38,.06),rgba(168,85,247,.04));border-top:2px solid var(--rd);border-bottom:2px solid var(--rd)">
+            <div style="font-size:14px;font-weight:700;color:var(--rd);letter-spacing:0.5px">
+              ⚠️ 금액 부호 불일치 <span style="margin-left:8px">${mismatched.length}건</span>
+            </div>
+          </td>
+        `;
+        frag.appendChild(separatorTr);
+
+        // 불일치 거래 렌더링
+        mismatched.forEach((tx, idx) => {
+          frag.appendChild(renderTransactionRow(tx, normal.length + idx));
+        });
+      }
+
+      // 미분류 섹션
+      if (unclassified.length > 0) {
+        const separatorTr = document.createElement('tr');
+        separatorTr.innerHTML = `
+          <td colspan="7" style="padding:24px 0;text-align:center;background:linear-gradient(135deg,rgba(232,101,10,.06),rgba(217,119,6,.04));border-top:2px solid var(--ac);border-bottom:2px solid var(--ac)">
+            <div style="font-size:14px;font-weight:700;color:var(--ac);letter-spacing:0.5px">
+              미분류 <span style="margin-left:8px">${unclassified.length}건</span>
+            </div>
+          </td>
+        `;
+        frag.appendChild(separatorTr);
+
+        // 미분류 거래 렌더링
+        unclassified.forEach((tx, idx) => {
+          frag.appendChild(renderTransactionRow(tx, normal.length + mismatched.length + idx));
+        });
+      }
+
+      body.innerHTML = '';
+      body.appendChild(frag);
+
+      // 건수 업데이트
+      const total = state.transactions.length;
+      const shown = filtered.length;
+      document.getElementById('classifyCount').textContent =
+        shown === total ? `${total}건` : `${shown} / ${total}건`;
+      const rc = document.getElementById('filterResultCount');
+      if (rc) rc.textContent = shown === total ? '' : `${shown}건 표시 중`;
+    }
+
+    function toggleUnclassified() {
+      filterState.includeUnclassified = document.getElementById('includeUnclassified').checked;
+      renderCategoryStats();
+    }
+
+    function renderCategoryStats() {
+      const grid = document.getElementById('catStatsGrid');
+      if (!grid) return;
+
+      // 미분류 포함 여부에 따라 거래 필터링
+      const txs = filterState.includeUnclassified
+        ? state.transactions
+        : state.transactions.filter(tx => tx.category !== null);
+
+      const classifiedTxs = txs.filter(tx => tx.category !== null);
+      const unclassifiedTxs = txs.filter(tx => tx.category === null);
+
+      const allCategories = new Set([...CATEGORIES, ...classifiedTxs.map(tx => tx.category)]);
+      if (filterState.includeUnclassified && unclassifiedTxs.length > 0) {
+        allCategories.add(null); // 미분류
+      }
+
+      const stats = {};
+      allCategories.forEach(cat => stats[cat] = { count: 0, total: 0, type: 'expense' });
+
+      // 규칙에서 타입 정보 설정
+      state.rules.forEach(rule => {
+        if (stats[rule.category]) {
+          stats[rule.category].type = rule.type || 'expense';
+        }
+      });
+
+      classifiedTxs.forEach(tx => {
+        stats[tx.category].count++;
+        stats[tx.category].total += tx.amount;
+      });
+
+      // 미분류 거래 처리
+      if (filterState.includeUnclassified && unclassifiedTxs.length > 0) {
+        stats[null] = { count: unclassifiedTxs.length, total: unclassifiedTxs.reduce((s, tx) => s + tx.amount, 0), type: 'unclassified' };
+      }
+
+      // CATEGORIES 순서대로 표시, 그 다음 새 카테고리들, 마지막에 미분류
+      const orderedCats = [
+        ...CATEGORIES.filter(cat => stats[cat]?.count > 0),
+        ...[...allCategories].filter(cat => !CATEGORIES.includes(cat) && cat !== null && stats[cat].count > 0),
+        ...(stats[null] ? [null] : [])
+      ];
+
+      const frag = document.createDocumentFragment();
+
+      // 카테고리별 카드 표시 (수익/지출 구분은 카드 내에만)
+      let incomeTotalAmount = 0;
+      let expenseTotalAmount = 0;
+
+      orderedCats.forEach(cat => {
+        const data = stats[cat];
+        if (data.count === 0) return;
+
+        const catName = cat === null ? '미분류' : cat;
+        const color = cat === null ? { bg: 'var(--s3)', fg: 'var(--t2)' } : getCategoryColor(cat);
+        const isIncome = data.type === 'income';
+
+        if (isIncome) {
+          incomeTotalAmount += Math.abs(data.total);
+        } else if (data.type !== 'unclassified') {
+          expenseTotalAmount += Math.abs(data.total);
+        }
+
+        const div = document.createElement('div');
+        div.style.cssText = 'background:var(--s2);border:1px solid var(--b1);border-radius:var(--r12);padding:14px 16px;display:flex;flex-direction:column;gap:6px';
+
+        const typeLabel = data.type === 'unclassified'
+          ? '<span style="display:inline-block;background:rgba(107,114,128,.15);color:var(--t2);padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600">미분류</span>'
+          : isIncome
+          ? '<span style="display:inline-block;background:rgba(22,163,74,.15);color:var(--gr);padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600">수익</span>'
+          : '<span style="display:inline-block;background:rgba(220,38,38,.15);color:var(--rd);padding:2px 6px;border-radius:3px;font-size:11px;font-weight:600">지출</span>';
+
+        div.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="cat-badge" style="background:${color.bg};color:${color.fg}">${catName}</span>
+              ${typeLabel}
+            </div>
+            <span style="font-size:12px;color:var(--t3);font-weight:600">${data.count}건</span>
+          </div>
+          <div style="font-size:18px;font-weight:800;letter-spacing:-0.5px;color:var(--t1);font-variant-numeric:tabular-nums">₩${fmtN(Math.abs(data.total))}</div>
+        `;
+        frag.appendChild(div);
+      });
+
+      // 최하단 총합 (수익, 지출, 순수익)
+      const netProfit = incomeTotalAmount - expenseTotalAmount;
+      const summaryDiv = document.createElement('div');
+      summaryDiv.style.cssText = 'grid-column:1/-1;background:var(--s2);border:2px solid var(--b1);border-radius:var(--r12);padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center;margin-top:12px';
+      summaryDiv.innerHTML = `
+        <div>
+          <div style="font-size:12px;color:var(--t2);margin-bottom:6px;font-weight:600">수익</div>
+          <div style="font-size:18px;font-weight:800;color:var(--gr)">₩${fmtN(incomeTotalAmount)}</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--t2);margin-bottom:6px;font-weight:600">지출</div>
+          <div style="font-size:18px;font-weight:800;color:var(--rd)">₩${fmtN(expenseTotalAmount)}</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--t2);margin-bottom:6px;font-weight:600">순수익</div>
+          <div style="font-size:18px;font-weight:800;color:${netProfit >= 0 ? 'var(--gr)' : 'var(--rd)'}">₩${fmtN(netProfit)}</div>
+        </div>
+      `;
+      frag.appendChild(summaryDiv);
+
+      grid.innerHTML = '';
+      grid.appendChild(frag);
+    }
+
+    function changeTxCategory(txId, newCategory) {
+      const tx = state.transactions.find(t => t.id === txId);
+      if (tx) {
+        tx.category = newCategory === '' ? null : newCategory;
+        tx.ruleMatched = null;
+      }
+      renderClassificationTable();
+      renderCategoryStats();
+    }
+
+    function completeStep2() {
+      if (state.transactions.length === 0) {
+        toast('먼저 데이터를 입력하세요');
+        return;
+      }
+      // 필터 초기화
+      filterState.query = '';
+      filterState.category = '';
+      filterState.mode = 'all';
+      document.getElementById('filterQuery').value = '';
+      document.getElementById('filterCategory').value = '';
+      document.getElementById('fltAll').classList.add('active');
+      document.getElementById('fltAuto').classList.remove('active');
+      document.getElementById('fltManual').classList.remove('active');
+
+      applyClassification();
+      renderClassificationTable();
+      renderCategoryStats();
+      switchStep(2);
+      toast('분류가 완료되었습니다');
+    }
+
+    function completeStep3() {
+      // 금액 부호와 카테고리 타입 불일치 거래 검증
+      const mismatchedTxs = state.transactions.filter(tx => {
+        if (tx.category === null) return false;
+        const rule = state.rules.find(r => r.category === tx.category);
+        if (!rule) return false;
+
+        const isIncome = rule.type === 'income';
+        const amountIsPositive = tx.amount > 0;
+
+        // 불일치: (수익인데 음수) 또는 (지출인데 양수)
+        return (isIncome && tx.amount < 0) || (!isIncome && tx.amount > 0);
+      });
+
+      if (mismatchedTxs.length > 0) {
+        showMismatchModal(mismatchedTxs);
+      } else {
+        proceedToExclude();
+      }
+    }
+
+    function showMismatchModal(mismatchedTxs) {
+      const modal = document.getElementById('mo_mismatch');
+      const body = document.getElementById('mismatchBody');
+
+      // 불일치 거래 목록 렌더링
+      const rows = mismatchedTxs.map(tx => {
+        const rule = state.rules.find(r => r.category === tx.category);
+        const typeLabel = rule?.type === 'income' ? '<span style="color:var(--gr);font-weight:600">수익</span>' : '<span style="color:var(--rd);font-weight:600">지출</span>';
+        const amountLabel = tx.amount > 0 ? '<span style="color:var(--gr)">양수</span>' : '<span style="color:var(--rd)">음수</span>';
+        return `
+          <tr>
+            <td style="padding:10px;font-size:12px">${esc(tx.date)}</td>
+            <td style="padding:10px;font-size:12px">${esc(tx.desc)}</td>
+            <td style="padding:10px;font-size:12px">${esc(tx.category)}</td>
+            <td style="padding:10px;font-size:12px;text-align:right">${typeLabel}</td>
+            <td style="padding:10px;font-size:12px;text-align:right">${amountLabel}</td>
+            <td style="padding:10px;font-size:12px;text-align:right">₩${fmtN(Math.abs(tx.amount))}</td>
+          </tr>
+        `;
+      }).join('');
+
+      body.innerHTML = `
+        <div style="overflow-x:auto;max-height:400px;border:1px solid var(--b1);border-radius:var(--r8)">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px">
+            <thead>
+              <tr style="background:var(--s2);border-bottom:1px solid var(--b1);position:sticky;top:0">
+                <th style="padding:10px;text-align:left;font-weight:600;min-width:100px">날짜</th>
+                <th style="padding:10px;text-align:left;font-weight:600;min-width:120px">설명</th>
+                <th style="padding:10px;text-align:left;font-weight:600;min-width:80px">카테고리</th>
+                <th style="padding:10px;text-align:center;font-weight:600;width:60px">분류</th>
+                <th style="padding:10px;text-align:center;font-weight:600;width:60px">금액</th>
+                <th style="padding:10px;text-align:right;font-weight:600;min-width:100px">금액값</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      modal.classList.add('open');
+    }
+
+    function proceedToExclude() {
+      // 미분류건 자동 제외
+      state.transactions.forEach(tx => {
+        if (tx.category === null) {
+          tx.excluded = true;
+          state.excludedIds.add(tx.id);
+        }
+      });
+      switchStep(3);
+      renderExcludeTable();
+      renderExcludedList();
+      renderParsingExcludedRows();
+      updateExcludeCount();
+    }
+
+    function renderParsingExcludedRows() {
+      // 파싱 제외 항목을 별도의 섹션으로 표시
+      if (!state.excludedRows || state.excludedRows.length === 0) {
+        return;
+      }
+
+      const card = document.getElementById('excludedListCard');
+      if (!card) return;
+
+      // 파싱 제외 항목 테이블 생성
+      const parsingExcludedHtml = `
+        <div style="margin-top:20px;padding-top:20px;border-top:2px dashed var(--b2)">
+          <h3 style="font-size:14px;font-weight:700;color:var(--am);margin-bottom:12px">⚠️ 파싱 제외 항목 (${state.excludedRows.length}개)</h3>
+          <p style="font-size:12px;color:var(--t3);margin-bottom:10px">이 항목들은 날짜 또는 금액 파싱 오류로 인해 자동으로 제외되었습니다.</p>
+          <div style="overflow-x:auto;border:1px solid var(--b2);border-radius:var(--r8)">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:600px">
+              <thead>
+                <tr style="background:var(--s2);border-bottom:1px solid var(--b2)">
+                  <th style="padding:10px;text-align:left;font-weight:600;min-width:50px">행#</th>
+                  <th style="padding:10px;text-align:left;font-weight:600;min-width:120px">제외 사유</th>
+                  <th style="padding:10px;text-align:left;font-weight:600;min-width:100px">날짜</th>
+                  <th style="padding:10px;text-align:left;font-weight:600;min-width:100px">금액</th>
+                  <th style="padding:10px;text-align:left;font-weight:600;min-width:200px">설명</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${state.excludedRows.map(row => `
+                  <tr style="background:rgba(217,119,6,.04);border-bottom:1px solid var(--b2);opacity:0.7">
+                    <td style="padding:10px;color:var(--t3)">${row.rowIndex}</td>
+                    <td style="padding:10px;color:var(--am);font-weight:600">${esc(row.reason)}</td>
+                    <td style="padding:10px;color:var(--t2)">${esc(row.data.date || '-')}</td>
+                    <td style="padding:10px;color:var(--t2)">${esc(row.data.amount)}</td>
+                    <td style="padding:10px;color:var(--t2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(row.data.desc)}">${esc(row.data.desc)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      // 기존 제외 항목 섹션에 파싱 제외 항목 추가
+      const listBody = document.getElementById('excludedListBody');
+      if (listBody) {
+        listBody.innerHTML += parsingExcludedHtml;
+      }
+    }
+
+    function closeMismatchModal() {
+      document.getElementById('mo_mismatch').classList.remove('open');
+    }
+
+    function excludeMismatched() {
+      const mismatchedTxs = state.transactions.filter(tx => {
+        if (tx.category === null) return false;
+        const rule = state.rules.find(r => r.category === tx.category);
+        if (!rule) return false;
+        return (rule.type === 'income' && tx.amount < 0) || (rule.type !== 'income' && tx.amount > 0);
+      });
+
+      mismatchedTxs.forEach(tx => {
+        tx.excluded = true;
+        state.excludedIds.add(tx.id);
+      });
+
+      closeMismatchModal();
+      proceedToExclude();
+      toast(`${mismatchedTxs.length}건의 불일치 거래가 제외되었습니다`);
+    }
+
+    function ignoreMismatch() {
+      closeMismatchModal();
+      proceedToExclude();
+    }
+
+    /* ── DATA REVIEW (Step 4) ── */
+    function toggleExclude(txId) {
+      const tx = state.transactions.find(t => t.id === txId);
+      if (!tx) return;
+      tx.excluded = true;
+      state.excludedIds.add(txId);
+      renderExcludeTable();
+      renderExcludedList();
+      updateExcludeCount();
+    }
+
+    function restoreExclude(txId) {
+      const tx = state.transactions.find(t => t.id === txId);
+      if (!tx) return;
+      tx.excluded = false;
+      state.excludedIds.delete(txId);
+      renderExcludeTable();
+      renderExcludedList();
+      updateExcludeCount();
+    }
+
+    function updateExcludeCount() {
+      const total = state.transactions.length;
+      const excCount = state.excludedIds.size;
+      const badge = document.getElementById('excludeCountBadge');
+      if (badge) badge.textContent = excCount > 0 ? `${total - excCount}건 (${excCount}건 제외 중)` : `전체 ${total}건`;
+      const card = document.getElementById('excludedListCard');
+      if (card) card.style.display = excCount > 0 ? '' : 'none';
+      const excBadge = document.getElementById('excludedCountBadge');
+      if (excBadge) excBadge.textContent = `${excCount}건`;
+    }
+
+    function renderExcludeTable() {
+      const body = document.getElementById('excludeBody');
+      if (!body) return;
+      const active = state.transactions.filter(tx => !tx.excluded);
+      const frag = document.createDocumentFragment();
+      active.forEach((tx, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="color:var(--t3);font-size:12px">${idx + 1}</td>
+          <td style="font-size:13px;color:var(--t2);white-space:nowrap">${esc(tx.date)}</td>
+          <td style="font-size:13px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(tx.desc)}">${esc(tx.desc)}</td>
+          <td style="font-size:13px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t3)" title="${esc(tx.memo||'')}">${esc(tx.memo||'-')}</td>
+          <td class="amt-cell">${tx.amount < 0 ? '<span style="color:var(--rd)">' : '<span>'}₩${fmtN(Math.abs(tx.amount))}</span></td>
+          <td style="font-size:12px;color:var(--t2)">${esc(tx.category)}</td>
+          <td style="text-align:center">
+            <button style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:var(--r8);border:1px solid var(--rd);background:rgba(220,38,38,.08);color:var(--rd);cursor:pointer" onclick="toggleExclude(${tx.id})">제외</button>
+          </td>
+        `;
+        frag.appendChild(tr);
+      });
+      body.innerHTML = '';
+      body.appendChild(frag);
+      updateExcludeCount();
+    }
+
+    function renderExcludedList() {
+      const body = document.getElementById('excludedBody');
+      if (!body) return;
+      const excl = state.transactions.filter(tx => tx.excluded);
+      const frag = document.createDocumentFragment();
+      excl.forEach((tx, idx) => {
+        const tr = document.createElement('tr');
+        tr.style.opacity = '0.6';
+        tr.innerHTML = `
+          <td style="color:var(--t3);font-size:12px">${idx + 1}</td>
+          <td style="font-size:13px;color:var(--t2);white-space:nowrap">${esc(tx.date)}</td>
+          <td style="font-size:13px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:line-through" title="${esc(tx.desc)}">${esc(tx.desc)}</td>
+          <td style="font-size:13px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t3)" title="${esc(tx.memo||'')}">${esc(tx.memo||'-')}</td>
+          <td class="amt-cell"><span style="color:var(--t3)">₩${fmtN(Math.abs(tx.amount))}</span></td>
+          <td style="font-size:12px;color:var(--t3)">${esc(tx.category)}</td>
+          <td style="text-align:center">
+            <button style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:var(--r8);border:1px solid var(--gr);background:rgba(22,163,74,.08);color:var(--gr);cursor:pointer" onclick="restoreExclude(${tx.id})">복원</button>
+          </td>
+        `;
+        frag.appendChild(tr);
+      });
+      body.innerHTML = '';
+      body.appendChild(frag);
+    }
+
+    function toggleExcludedSection() {
+      const listBody = document.getElementById('excludedListBody');
+      const icon = document.getElementById('excludedToggleIcon');
+      if (!listBody) return;
+      const isOpen = listBody.style.display !== 'none';
+      listBody.style.display = isOpen ? 'none' : '';
+      if (icon) icon.textContent = isOpen ? '▶' : '▼';
+    }
+
+    function completeStep4() {
+      switchStep(4);
+      renderReport();  // renderReport() 내에서 renderPeriodBar() 호출됨
+    }
+
+    /* ── REPORT (Step 5) ── */
+    let reportChartInstances = [];  // 모든 차트 인스턴스 관리
+
+    function getActiveTransactions() {
+      return state.transactions.filter(tx => !tx.excluded);
+    }
+
+    function calcKpi(txs) {
+      let income = 0, expense = 0;
+      txs.forEach(tx => {
+        // 카테고리 규칙의 type으로 판단
+        const rule = state.rules.find(r => r.category === tx.category);
+        const isIncome = rule && rule.type === 'income';
+
+        const amount = Math.abs(tx.amount);
+        if (isIncome) {
+          income += amount;
+        } else {
+          expense += amount;
+        }
+      });
+      return { income, expense, net: income - expense };
+    }
+
+    function calcCategoryBreakdown(txs) {
+      const map = {};
+      CATEGORIES.forEach(c => { map[c] = { total: 0, count: 0 }; });
+      // 분류된 거래만 처리 (미분류는 제외)
+      txs.filter(tx => tx.category !== null).forEach(tx => {
+        if (map[tx.category]) {
+          map[tx.category].total += tx.amount;
+          map[tx.category].count++;
+        }
+      });
+      const grandTotal = Object.values(map).reduce((s, v) => s + Math.abs(v.total), 0);
+      return CATEGORIES.map(c => ({
+        category: c,
+        total: map[c].total,
+        count: map[c].count,
+        pct: grandTotal ? Math.round(Math.abs(map[c].total) / grandTotal * 100) : 0
+      })).filter(r => r.count > 0);
+    }
+
+    function getYears(txs) {
+      // tx.date는 이미 YYYY-MM-DD 형식으로 정규화됨 (buildTransactions에서)
+      const years = new Set(txs.map(tx => tx.date.split('-')[0]));
+      return [...years].sort();
+    }
+
+    function filterByPeriod(txs, year, month) {
+      // tx.date는 이미 YYYY-MM-DD 형식으로 정규화됨 (buildTransactions에서)
+      return txs.filter(tx => {
+        const [y, m] = tx.date.split('-');
+        if (y !== year) return false;
+        if (month && m !== month) return false;
+        return true;
+      });
+    }
+
+    function buildMonthlyChartData(txs, year) {
+      const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+      const labels = months.map(m => `${parseInt(m)}월`);
+      const income  = months.map(m => {
+        const filtered = filterByPeriod(txs, year, m);
+        return filtered.filter(tx => tx.amount > 0).reduce((s, tx) => s + tx.amount, 0);
+      });
+      const expense = months.map(m => {
+        const filtered = filterByPeriod(txs, year, m);
+        return filtered.filter(tx => tx.amount < 0).reduce((s, tx) => s + Math.abs(tx.amount), 0);
+      });
+      return { labels, income, expense };
+    }
+
+    /* ── NEW REPORT HELPER FUNCTIONS ── */
+    function getMonthsWithData(txs, year) {
+      const months = new Set(filterByPeriod(txs, year, null).map(tx => tx.date.slice(5, 7)));
+      return [...months].sort();
+    }
+
+    function renderSummaryBar(kpi) {
+      const container = document.getElementById('reportSummaryBar');
+      if (!container) return;
+      const income = Number(kpi.income) || 0;
+      const expense = Number(kpi.expense) || 0;
+      const total = income + expense;
+      if (total === 0) {
+        container.innerHTML = '';
+        return;
+      }
+      const incomePct = Math.round((income / total) * 100);
+      const expensePct = 100 - incomePct;
+      container.innerHTML = `
+        <div class="summary-bar-label">
+          <span>수입 · 지출 비율</span>
+          <span style="color:var(--t1);font-weight:600">${incomePct}% · ${expensePct}%</span>
+        </div>
+        <div class="summary-bar-track">
+          <div class="summary-bar-fill" style="width:${incomePct}%;background:var(--gr)">${incomePct}%</div>
+          <div class="summary-bar-fill" style="width:${expensePct}%;background:var(--rd)">${expensePct}%</div>
+        </div>
+      `;
+    }
+
+    function renderUnclassifiedBanner(allTxs) {
+      const container = document.getElementById('reportUnclassifiedBanner');
+      if (!container) return;
+      const unclassified = allTxs.filter(tx => !tx.excluded && tx.category === null);
+      if (unclassified.length === 0) {
+        container.classList.remove('show');
+        return;
+      }
+      container.innerHTML = `
+        <div class="banner-text">⚠️ ${unclassified.length}건의 거래가 미분류됩니다</div>
+        <button class="banner-btn" onclick="switchStep(1)">규칙 탭으로</button>
+      `;
+      container.classList.add('show');
+    }
+
+    function renderInsights(kpi, breakdown, allTxs, year, month) {
+      const container = document.getElementById('reportInsightRow');
+      if (!container) return;
+      const income = Number(kpi.income) || 0;
+      const net = Number(kpi.net) || 0;
+
+      let badges = [];
+
+      // 카테고리별 차지하는 비율과 금액
+      breakdown.forEach(cat => {
+        const colorInfo = getCategoryColor(cat.category);
+        const colorFg = colorInfo.fg || colorInfo;
+        badges.push({
+          label: cat.category,
+          value: `₩${fmtN(Math.abs(cat.total))}`,
+          sub: `${cat.pct}%`,
+          color: colorFg
+        });
+      });
+
+      // 수익률
+      if (income > 0) {
+        const profitMargin = Math.round((net / income) * 100);
+        badges.push({
+          label: '수익률',
+          value: `${profitMargin}%`,
+          color: net >= 0 ? 'var(--gr)' : 'var(--rd)'
+        });
+      }
+
+      if (badges.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = badges.map(b => `
+        <div class="insight-badge" style="border-left:3px solid ${b.color}">
+          <div class="insight-badge-label">${b.label}</div>
+          <div class="insight-badge-value" style="color:${b.color || 'var(--t1)'}">${b.value}</div>
+          ${b.sub ? `<div style="font-size:11px;color:var(--t3)">${b.sub}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function renderReport() {
+      const all = getActiveTransactions();
+      if (!all.length) {
+        toast('제외되지 않은 거래가 없습니다');
+        return;
+      }
+
+      const years = getYears(all);
+      renderPeriodBar(years);
+      renderUnclassifiedBanner(all);
+
+      // 기존 차트 인스턴스 모두 destroy
+      reportChartInstances.forEach(c => c?.destroy());
+      reportChartInstances = [];
+
+      // 모든 연도·월 섹션 렌더링
+      const container = document.getElementById('reportAllSections');
+      container.innerHTML = '';
+
+      years.forEach(year => {
+        container.appendChild(buildYearSection(year, all));
+        getMonthsWithData(all, year).sort().forEach(month => {
+          container.appendChild(buildMonthSection(year, month, all));
+        });
+      });
+
+      // Scroll Spy 초기화
+      initScrollSpy();
+    }
+
+    /**
+     * 연도 섹션 빌드
+     */
+    function buildYearSection(year, allTxs) {
+      const wrapper = document.createElement('div');
+      wrapper.id = `report-${year}`;
+      wrapper.className = 'report-section';
+
+      const yearTxs = filterByPeriod(allTxs, year, null);
+      const classifiedTxs = yearTxs.filter(tx => tx.category !== null);
+      const kpi = calcKpi(classifiedTxs);
+      const breakdown = calcCategoryBreakdown(classifiedTxs);
+      const monthsWithData = getMonthsWithData(allTxs, year);
+
+      let html = `<div class="report-section-title">${year}년</div>`;
+
+      // KPI 카드
+      const incomeStr = fmtN(Math.abs(kpi.income));
+      const expenseStr = fmtN(Math.abs(kpi.expense));
+      const netStr = fmtN(Math.abs(kpi.net));
+      html += `
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+          <div class="kpi-card"><div class="kpi-label">총 수입</div><div class="kpi-value" style="color:var(--gr)">₩${incomeStr}</div></div>
+          <div class="kpi-card"><div class="kpi-label">총 지출</div><div class="kpi-value" style="color:var(--rd)">₩${expenseStr}</div></div>
+          <div class="kpi-card"><div class="kpi-label">순이익</div><div class="kpi-value" style="color:${kpi.net >= 0 ? 'var(--gr)' : 'var(--rd)'}">₩${netStr}</div></div>
+        </div>
+      `;
+
+      // 비율 바
+      renderSummaryBar(kpi);
+      const summaryBarHtml = document.getElementById('reportSummaryBar').innerHTML;
+      html += `<div id="temp-summary" style="margin-bottom:20px">${summaryBarHtml}</div>`;
+
+      // 라인 차트 (월 2개 이상이면)
+      if (monthsWithData.length > 1) {
+        const canvasId = `line-${year}`;
+        html += `
+          <div class="card" style="padding:16px;display:flex;flex-direction:column;margin-bottom:20px">
+            <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">월별 추이</div>
+            <canvas id="${canvasId}" height="300"></canvas>
+          </div>
+        `;
+      }
+
+      // 인사이트
+      renderInsights(kpi, breakdown, allTxs, year, null);
+      const insightHtml = document.getElementById('reportInsightRow').innerHTML;
+      html += `<div style="margin-bottom:20px">${insightHtml}</div>`;
+
+      // 카테고리 상세 (년도 섹션 ID 포함)
+      renderCategoryDetails(breakdown, classifiedTxs, `report-${year}`);
+      const catDetailsHtml = document.getElementById('reportCatDetailsContainer').innerHTML;
+      html += `<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">카테고리별 상세</div>${catDetailsHtml}</div>`;
+
+      wrapper.innerHTML = html;
+
+      // 라인 차트 렌더링 (wrapper 반환 전에 차트 생성)
+      if (monthsWithData.length > 1) {
+        const canvasId = `line-${year}`;
+        // setTimeout으로 DOM 레이아웃 완료 후 차트 렌더링
+        setTimeout(() => {
+          const canvas = document.getElementById(canvasId);
+          if (canvas) {
+            const chartInstance = renderMonthlyLineChart(allTxs, year, canvasId);
+            if (chartInstance) reportChartInstances.push(chartInstance);
+          }
+        }, 0);
+      }
+
+      return wrapper;
+    }
+
+    /**
+     * 월 섹션 빌드
+     */
+    function buildMonthSection(year, month, allTxs) {
+      const wrapper = document.createElement('div');
+      wrapper.id = `report-${year}-${month}`;
+      wrapper.className = 'report-section';
+
+      const monthTxs = filterByPeriod(allTxs, year, month);
+      const classifiedTxs = monthTxs.filter(tx => tx.category !== null);
+      const kpi = calcKpi(classifiedTxs);
+      const breakdown = calcCategoryBreakdown(classifiedTxs);
+      const monthName = parseInt(month) + '월';
+
+      let html = `<div class="report-section-title">${year}년 ${monthName}</div>`;
+
+      // KPI 카드
+      const incomeStr = fmtN(Math.abs(kpi.income));
+      const expenseStr = fmtN(Math.abs(kpi.expense));
+      const netStr = fmtN(Math.abs(kpi.net));
+      html += `
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+          <div class="kpi-card"><div class="kpi-label">총 수입</div><div class="kpi-value" style="color:var(--gr)">₩${incomeStr}</div></div>
+          <div class="kpi-card"><div class="kpi-label">총 지출</div><div class="kpi-value" style="color:var(--rd)">₩${expenseStr}</div></div>
+          <div class="kpi-card"><div class="kpi-label">순이익</div><div class="kpi-value" style="color:${kpi.net >= 0 ? 'var(--gr)' : 'var(--rd)'}">₩${netStr}</div></div>
+        </div>
+      `;
+
+      // 비율 바
+      renderSummaryBar(kpi);
+      const summaryBarHtml = document.getElementById('reportSummaryBar').innerHTML;
+      html += `<div style="margin-bottom:20px">${summaryBarHtml}</div>`;
+
+      // 도넛 차트
+      const canvasId = `doughnut-${year}-${month}`;
+      html += `
+        <div class="card" style="padding:16px;display:flex;flex-direction:column;align-items:center;margin-bottom:20px">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">카테고리 비율</div>
+          <canvas id="${canvasId}" height="300" width="300"></canvas>
+        </div>
+      `;
+
+      // 인사이트
+      renderInsights(kpi, breakdown, allTxs, year, month);
+      const insightHtml = document.getElementById('reportInsightRow').innerHTML;
+      html += `<div style="margin-bottom:20px">${insightHtml}</div>`;
+
+      // 카테고리 상세 (월 섹션 ID 포함)
+      renderCategoryDetails(breakdown, classifiedTxs, `report-${year}-${month}`);
+      const catDetailsHtml = document.getElementById('reportCatDetailsContainer').innerHTML;
+      html += `<div><div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">카테고리별 상세</div>${catDetailsHtml}</div>`;
+
+      wrapper.innerHTML = html;
+
+      // 도넛 차트 렌더링 (wrapper 반환 전에 차트 생성)
+      if (breakdown.length > 0) {
+        // setTimeout으로 DOM 레이아웃 완료 후 차트 렌더링
+        setTimeout(() => {
+          const canvas = document.getElementById(canvasId);
+          if (canvas) {
+            const chartInstance = renderDoughnutChart(breakdown, canvasId);
+            if (chartInstance) reportChartInstances.push(chartInstance);
+          }
+        }, 0);
+      }
+
+      return wrapper;
+    }
+
+    function renderPeriodBar(years) {
+      const bar = document.getElementById('reportPeriodBar');
+      if (!bar) return;
+
+      let html = '';
+
+      // 모든 연도와 월의 라벨 렌더링
+      years.forEach(year => {
+        // 연도 라벨
+        html += `<button class="period-chip" data-target="report-${year}" onclick="scrollToSection('report-${year}')">${year}년</button>`;
+
+        // 해당 연도의 월 라벨들
+        const all = getActiveTransactions();
+        const months = getMonthsWithData(all, year).sort();
+        months.forEach(month => {
+          html += `<button class="period-chip" data-target="report-${year}-${month}" onclick="scrollToSection('report-${year}-${month}')">${parseInt(month)}월</button>`;
+        });
+      });
+
+      bar.innerHTML = html;
+    }
+
+    /**
+     * 해당 섹션으로 부드럽게 스크롤 이동
+     */
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /**
+     * Scroll Spy: 현재 화면에 보이는 섹션에 따라 라벨 활성화
+     */
+    function initScrollSpy() {
+      if (window._reportSpyObserver) window._reportSpyObserver.disconnect();
+
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+
+          // 모든 라벨 비활성화
+          document.querySelectorAll('.period-chip').forEach(c => c.classList.remove('active'));
+
+          // 현재 섹션에 해당하는 라벨 활성화
+          const chip = document.querySelector(`.period-chip[data-target="${entry.target.id}"]`);
+          if (chip) chip.classList.add('active');
+        });
+      }, { threshold: 0.15, rootMargin: '-10% 0px -70% 0px' });
+
+      // 모든 섹션에 observer 등록
+      document.querySelectorAll('.report-section').forEach(el => observer.observe(el));
+      window._reportSpyObserver = observer;
+    }
+
+    function renderKpiCards(kpi) {
+      const row = document.getElementById('kpiRow');
+      if (!row || !kpi) return;
+      const income = Number(kpi.income) || 0;
+      const expense = Number(kpi.expense) || 0;
+      const net = Number(kpi.net) || 0;
+      const cards = [
+        { label: '총 수입', value: income, color: 'var(--gr)', sub: '(+) 합계' },
+        { label: '총 지출', value: expense, color: 'var(--rd)', sub: '(-) 합계' },
+        { label: '순이익',  value: net,     color: net >= 0 ? 'var(--gr)' : 'var(--rd)', sub: '수입 - 지출' }
+      ];
+      row.innerHTML = cards.map(c => `
+        <div class="kpi-card">
+          <div class="kpi-label">${c.label}</div>
+          <div class="kpi-value" style="color:${c.color}">₩${fmtN(Math.abs(c.value))}</div>
+          <div class="kpi-sub">${c.sub}</div>
+        </div>
+      `).join('');
+      console.log('[Report] KPI:', { income, expense, net });
+    }
+
+    const CAT_COLORS = ['#e8650a','#16a34a','#2563eb','#d97706','#9333ea','#0891b2','#dc2626','#64748b'];
+
+    function renderMonthlyLineChart(allTxs, year, canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || !allTxs || !year) return;
+      year = String(year);  // 문자열로 명시적 변환
+      const { labels, income, expense } = buildMonthlyChartData(allTxs, year);
+
+      // 데이터 검증
+      const totalIncome = income.reduce((s, v) => s + v, 0);
+      const totalExpense = expense.reduce((s, v) => s + v, 0);
+      console.log('[Report] Monthly line chart data:', { year, totalIncome, totalExpense, incomeArray: income, expenseArray: expense });
+
+      if (totalIncome === 0 && totalExpense === 0) {
+        console.warn('[Report] No monthly data for year:', year);
+        return;
+      }
+
+      const maxValue = Math.max(...income, ...expense, 0);
+      // 만원 단위로 올림
+      const maxManWon = maxValue > 0 ? Math.ceil(maxValue / 10000) : 100;
+      const roundedMaxManWon = Math.ceil(maxManWon / 5) * 5;
+      const yMax = roundedMaxManWon * 10000;
+      const stepManWon = roundedMaxManWon / 5;
+      const stepSize = stepManWon * 10000;
+
+      // canvas 크기 부모 요소에 맞추기
+      const parentWidth = canvas.parentElement.offsetWidth - 32;
+      canvas.width = parentWidth;
+      canvas.height = 280;
+
+      const chartInstance = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: '수입',
+              data: income,
+              borderColor: '#16a34a',
+              backgroundColor: 'rgba(22,163,74,.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3,
+              pointBackgroundColor: '#16a34a',
+              pointRadius: 4
+            },
+            {
+              label: '지출',
+              data: expense,
+              borderColor: '#dc2626',
+              backgroundColor: 'rgba(220,38,38,.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3,
+              pointBackgroundColor: '#dc2626',
+              pointRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 } } },
+            layout: { padding: { left: 10, right: 20, top: 10 } }
+          },
+          scales: {
+            x: {
+              ticks: {
+                autoSkip: false,
+                maxRotation: 0,
+                minRotation: 0,
+                font: { size: 11 }
+              }
+            },
+            y: {
+              max: yMax,
+              ticks: {
+                stepSize: stepSize,
+                callback: v => {
+                  const manWon = Math.round(v / 10000);
+                  return `₩${fmtN(manWon)} 만원`;
+                }
+              },
+              grid: { color: 'rgba(0,0,0,.05)' }
+            }
+          }
+        }
+      });
+
+      return chartInstance;
+    }
+
+    function renderDoughnutChart(breakdown, canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || !breakdown || !breakdown.length) {
+        console.warn('[Report] No breakdown data for doughnut chart');
+        return;
+      }
+      const labels = breakdown.map(r => r.category);
+      const data   = breakdown.map(r => Math.abs(r.total));
+      const bgColors = breakdown.map(r => {
+        const color = getCategoryColor(r.category);
+        let bgColor = color.bg || color;
+        // rgba 색상을 더 진하게 만들기 (알파값 증가)
+        if (bgColor.startsWith('rgba')) {
+          bgColor = bgColor.replace(/,\s*[\d.]+\)/, ', 0.6)');
+        }
+        return bgColor;
+      });
+
+      // canvas 크기 명시적 설정
+      canvas.width = canvas.parentElement.offsetWidth;
+      canvas.height = 280;
+      const chartInstance = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: bgColors,
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 12 }, boxWidth: 14, padding: 15 } },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const idx = ctx.dataIndex;
+                  const pct = breakdown[idx]?.pct || 0;
+                  return ` ₩${fmtN(ctx.raw)} (${pct}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+      console.log('[Report] Doughnut chart rendered:', labels);
+      return chartInstance;
+    }
+
+    function renderCategoryDetails(breakdown, periodTxs, sectionId) {
+      // sectionId를 사용하여 고유한 ID 생성 (예: section-id가 'report-2026-4'면 'detail-report-2026-4-0')
+      // sectionId가 없으면 임시 고유값 생성
+      const uniquePrefix = sectionId || `temp-${Date.now()}-${Math.random()}`;
+
+      const html = breakdown.map((r, idx) => {
+        const colorInfo = getCategoryColor(r.category);
+        const colorFg = colorInfo.fg || colorInfo;
+        const detailId = `detail-${uniquePrefix}-${idx}`;
+        const iconId = `icon-${uniquePrefix}-${idx}`;
+        const txsContainerId = `catTxs-${uniquePrefix}-${idx}`;
+        return `
+        <div style="margin-bottom:12px;border:1px solid var(--b1);border-radius:var(--r8);overflow:hidden">
+          <!-- 토글 헤더 -->
+          <div style="padding:14px 16px;background:var(--s2);cursor:pointer;display:flex;align-items:center;gap:12px" onclick="toggleCategoryDetail('${detailId}', this)">
+            <span id="${iconId}" style="font-size:14px">▼</span>
+            <div style="width:8px;height:8px;border-radius:50%;background:${colorFg};flex-shrink:0"></div>
+            <span style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${esc(r.category)}</span>
+            <span style="font-size:13px;font-weight:600;color:var(--t2)">₩${fmtN(Math.abs(r.total))}</span>
+            <span style="font-size:12px;color:var(--t3);min-width:40px;text-align:right">${r.pct}%</span>
+            <span style="font-size:12px;color:var(--t3);min-width:40px;text-align:right">${r.count}건</span>
+          </div>
+          <!-- 토글 콘텐츠 (거래 내역) -->
+          <div id="${detailId}" style="display:none;padding:16px;background:var(--s1);max-height:400px;overflow-y:auto">
+            <div style="font-size:12px;color:var(--t3);margin-bottom:10px">해당 카테고리의 거래 내역</div>
+            <div id="${txsContainerId}"></div>
+          </div>
+        </div>
+      `;
+      }).join('');
+
+      // 임시 컨테이너에 렌더링
+      const container = document.getElementById('reportCatDetailsContainer');
+      if (container) container.innerHTML = html;
+
+      // 각 카테고리의 거래 내역 렌더링 (선택한 기간에서만)
+      breakdown.forEach((r, idx) => {
+        const catTxs = periodTxs.filter(tx => tx.category === r.category);
+        const txsHtml = catTxs.map(tx => `
+          <div style="padding:8px;border-bottom:1px solid var(--b2);font-size:11px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="color:var(--t2)">${esc(tx.date)}</span>
+              <span style="font-weight:600">${tx.amount > 0 ? '<span style="color:var(--gr)">+' : '<span style="color:var(--rd)">'}₩${fmtN(Math.abs(tx.amount))}</span></span>
+            </div>
+            <div style="color:var(--t3)">${esc(tx.desc)}</div>
+          </div>
+        `).join('');
+
+        const txsContainerId = `catTxs-${uniquePrefix}-${idx}`;
+        const txsContainer = document.getElementById(txsContainerId);
+        if (txsContainer) {
+          txsContainer.innerHTML = txsHtml || '<div style="color:var(--t3);padding:8px">거래 내역이 없습니다</div>';
+        }
+      });
+
+      // 반환된 HTML (임시 컨테이너에서 캡처하기 위함)
+      return html;
+    }
+
+    function toggleCategoryDetail(detailId, header) {
+      const detail = document.getElementById(detailId);
+      const icon = header.querySelector('span:first-child');
+      if (detail.style.display === 'none') {
+        detail.style.display = 'block';
+        icon.textContent = '▼';
+      } else {
+        detail.style.display = 'none';
+        icon.textContent = '▶';
+      }
+    }
+
+    function copyReportText() {
+      const all = getActiveTransactions();
+      if (!all.length) {
+        toast('복사할 데이터가 없습니다');
+        return;
+      }
+
+      const years = getYears(all);
+      let md = `# 에어비앤비 수익 리포트\n\n`;
+      md += `생성일: ${new Date().toLocaleDateString('ko-KR')}\n\n`;
+
+      years.forEach(year => {
+        md += `## ${year}년 전체\n\n`;
+
+        const yearTxs = filterByPeriod(all, year, null);
+        const classifiedYearTxs = yearTxs.filter(tx => tx.category !== null);
+        const yearKpi = calcKpi(classifiedYearTxs);
+        const yearBreakdown = calcCategoryBreakdown(classifiedYearTxs);
+
+        // 년도 KPI
+        md += `### KPI\n`;
+        md += `| 항목 | 금액 |\n`;
+        md += `|------|--------|\n`;
+        md += `| 총 수입 | ₩${fmtN(yearKpi.income)} |\n`;
+        md += `| 총 지출 | ₩${fmtN(yearKpi.expense)} |\n`;
+        md += `| 순이익 | ₩${fmtN(yearKpi.net)} |\n\n`;
+
+        // 년도 카테고리별 분석
+        if (yearBreakdown.length > 0) {
+          md += `### 카테고리별 분석\n`;
+          md += `| 카테고리 | 금액 | 비율 | 거래수 |\n`;
+          md += `|----------|------|------|--------|\n`;
+          yearBreakdown.forEach(r => {
+            md += `| ${r.category} | ₩${fmtN(Math.abs(r.total))} | ${r.pct}% | ${r.count}건 |\n`;
+          });
+          md += '\n';
+        }
+
+        // 월별 상세
+        const monthsWithData = getMonthsWithData(all, year).sort();
+        if (monthsWithData.length > 0) {
+          md += `### 월별 상세\n\n`;
+
+          monthsWithData.forEach(month => {
+            md += `#### ${year}년 ${parseInt(month)}월\n\n`;
+
+            const monthTxs = filterByPeriod(all, year, month);
+            const classifiedMonthTxs = monthTxs.filter(tx => tx.category !== null);
+            const monthKpi = calcKpi(classifiedMonthTxs);
+            const monthBreakdown = calcCategoryBreakdown(classifiedMonthTxs);
+
+            // 월별 KPI
+            md += `| 항목 | 금액 |\n`;
+            md += `|------|--------|\n`;
+            md += `| 총 수입 | ₩${fmtN(monthKpi.income)} |\n`;
+            md += `| 총 지출 | ₩${fmtN(monthKpi.expense)} |\n`;
+            md += `| 순이익 | ₩${fmtN(monthKpi.net)} |\n\n`;
+
+            // 월별 카테고리
+            if (monthBreakdown.length > 0) {
+              md += `| 카테고리 | 금액 | 비율 | 거래수 |\n`;
+              md += `|----------|------|------|--------|\n`;
+              monthBreakdown.forEach(r => {
+                md += `| ${r.category} | ₩${fmtN(Math.abs(r.total))} | ${r.pct}% | ${r.count}건 |\n`;
+              });
+            }
+            md += '\n';
+          });
+        }
+
+        md += '---\n\n';
+      });
+
+      // 클립보드에 복사
+      navigator.clipboard.writeText(md).then(() => {
+        toast('마크다운 형식으로 복사되었습니다 (Notion 붙여넣기 가능)');
+      }).catch(err => {
+        console.error('복사 실패:', err);
+        toast('복사 실패했습니다');
+      });
+    }
+
+    function exportReviewData() {
+      const active = state.transactions.filter(tx => !tx.excluded);
+      if (!active.length) {
+        toast('내보낼 데이터가 없습니다');
+        return;
+      }
+
+      // 헤더 작성
+      let txt = '날짜\t설명\t메모\t금액\t카테고리\n';
+
+      // 데이터 행 작성
+      active.forEach(tx => {
+        const amount = tx.amount < 0 ? `-${Math.abs(tx.amount)}` : tx.amount;
+        txt += `${tx.date}\t${tx.desc}\t${tx.memo || '-'}\t${amount}\t${tx.category}\n`;
+      });
+
+      navigator.clipboard.writeText(txt)
+        .then(() => toast('데이터가 복사되었습니다 (엑셀에 붙여넣기 가능)'))
+        .catch(() => toast('복사 실패 - 브라우저 권한을 확인하세요'));
+    }
+
+    function showWarn(msg) {
+      const el = document.getElementById('mo_warn');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    /* ── HELPERS ── */
+    function showMsg(elementId, text, type) {
+      const el = document.getElementById(elementId);
+      const colors = {
+        success: { bg: 'rgba(22,163,74,.08)', border: 'rgba(22,163,74,.2)', color: 'var(--gr)' },
+        error: { bg: 'rgba(220,38,38,.08)', border: 'rgba(220,38,38,.2)', color: 'var(--rd)' },
+        warning: { bg: 'rgba(217,119,6,.08)', border: 'rgba(217,119,6,.2)', color: 'var(--am)' }
+      };
+      const c = colors[type] || colors.success;
+      el.innerHTML = `<div style="background:${c.bg};border:1px solid ${c.border};border-radius:var(--r8);padding:10px 14px;font-size:13px;color:${c.color}">${esc(text)}</div>`;
+      el.style.display = 'block';
+    }
+
+    function toast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    function esc(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function fmtN(num) {
+      return num.toLocaleString('ko-KR');
+    }
+  </script>
+
+  <!-- MODAL: PARSING EXCLUDED ROWS -->
+  <div class="mo-ov" id="mo_excluded" onclick="if(event.target===this)closeExcludedModal()">
+    <div class="mo" style="max-width:min(720px,90vw)">
+      <div class="mo-hdr">
+        <h2 style="font-size:18px;font-weight:700;color:var(--t1)">⚠️ 파싱 제외된 행</h2>
+        <button class="mo-close" onclick="closeExcludedModal()">✕</button>
+      </div>
+      <div class="mo-body" style="max-height:400px;overflow-y:auto">
+        <p style="font-size:13px;color:var(--t2);margin-bottom:14px">다음 행들은 날짜 또는 금액 파싱 오류로 제외되었습니다. 이상한 값을 확인하고 raw data를 수정하세요.</p>
+        <table class="table" style="width:100%;font-size:12px">
+          <thead>
+            <tr>
+              <th style="width:60px">행#</th>
+              <th>세부 정보</th>
+            </tr>
+          </thead>
+          <tbody id="excludedParsingBody"></tbody>
+        </table>
+      </div>
+      <div class="mo-ftr" style="border-top:1px solid var(--b2);padding-top:14px;margin-top:14px">
+        <button class="notion-btn primary" onclick="closeExcludedModal()">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF Utilities -->
+  <script src="../js/airbnb-revenue-analyzer/pdf-utils.js"></script>
+</body>
+</html>
