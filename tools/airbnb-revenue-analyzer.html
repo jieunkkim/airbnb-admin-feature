@@ -724,7 +724,7 @@
           <div class="card-ico" style="background:rgba(22,163,74,.1)">📈</div>
           <span class="card-ttl">리포트</span>
           <div style="margin-left:auto;display:flex;gap:8px">
-            <button class="notion-btn" onclick="copyReportText()" style="font-size:13px;padding:7px 14px;display:none">📋 복사</button>
+            <button class="notion-btn" onclick="copyReportText()" style="font-size:13px;padding:7px 14px">📋 복사</button>
             <button class="notion-btn primary" onclick="openPdfOptionsModal()" style="font-size:13px;padding:7px 14px;display:none">⬇ PDF</button>
           </div>
         </div>
@@ -2588,18 +2588,86 @@
     }
 
     function copyReportText() {
-      const all  = getActiveTransactions();
-      const year = reportState.year || '';
-      const mon  = reportState.month ? `${parseInt(reportState.month)}월` : '전체';
-      const txs  = reportState.month
-        ? filterByPeriod(all, year, reportState.month)
-        : filterByPeriod(all, year, null);
-      const kpi = calcKpi(txs);
-      const cats = calcCategoryBreakdown(txs);
-      let txt = `[에어비앤비 수익 리포트]\n기간: ${year}년 ${mon}\n\n`;
-      txt += `총수입: ₩${fmtN(kpi.income)}\n총지출: ₩${fmtN(kpi.expense)}\n순이익: ₩${fmtN(kpi.net)}\n\n`;
-      txt += `[카테고리별]\n`;
-      cats.forEach(r => { txt += `${r.category}: ₩${fmtN(Math.abs(r.total))} (${r.pct}%, ${r.count}건)\n`; });
+      const all = getActiveTransactions();
+      if (!all.length) {
+        toast('복사할 데이터가 없습니다');
+        return;
+      }
+
+      const years = getYears(all);
+      let md = `# 에어비앤비 수익 리포트\n\n`;
+      md += `생성일: ${new Date().toLocaleDateString('ko-KR')}\n\n`;
+
+      years.forEach(year => {
+        md += `## ${year}년 전체\n\n`;
+
+        const yearTxs = filterByPeriod(all, year, null);
+        const classifiedYearTxs = yearTxs.filter(tx => tx.category !== null);
+        const yearKpi = calcKpi(classifiedYearTxs);
+        const yearBreakdown = calcCategoryBreakdown(classifiedYearTxs);
+
+        // 년도 KPI
+        md += `### KPI\n`;
+        md += `| 항목 | 금액 |\n`;
+        md += `|------|--------|\n`;
+        md += `| 총 수입 | ₩${fmtN(yearKpi.income)} |\n`;
+        md += `| 총 지출 | ₩${fmtN(yearKpi.expense)} |\n`;
+        md += `| 순이익 | ₩${fmtN(yearKpi.net)} |\n\n`;
+
+        // 년도 카테고리별 분석
+        if (yearBreakdown.length > 0) {
+          md += `### 카테고리별 분석\n`;
+          md += `| 카테고리 | 금액 | 비율 | 거래수 |\n`;
+          md += `|----------|------|------|--------|\n`;
+          yearBreakdown.forEach(r => {
+            md += `| ${r.category} | ₩${fmtN(Math.abs(r.total))} | ${r.pct}% | ${r.count}건 |\n`;
+          });
+          md += '\n';
+        }
+
+        // 월별 상세
+        const monthsWithData = getMonthsWithData(all, year).sort();
+        if (monthsWithData.length > 0) {
+          md += `### 월별 상세\n\n`;
+
+          monthsWithData.forEach(month => {
+            md += `#### ${year}년 ${parseInt(month)}월\n\n`;
+
+            const monthTxs = filterByPeriod(all, year, month);
+            const classifiedMonthTxs = monthTxs.filter(tx => tx.category !== null);
+            const monthKpi = calcKpi(classifiedMonthTxs);
+            const monthBreakdown = calcCategoryBreakdown(classifiedMonthTxs);
+
+            // 월별 KPI
+            md += `| 항목 | 금액 |\n`;
+            md += `|------|--------|\n`;
+            md += `| 총 수입 | ₩${fmtN(monthKpi.income)} |\n`;
+            md += `| 총 지출 | ₩${fmtN(monthKpi.expense)} |\n`;
+            md += `| 순이익 | ₩${fmtN(monthKpi.net)} |\n\n`;
+
+            // 월별 카테고리
+            if (monthBreakdown.length > 0) {
+              md += `| 카테고리 | 금액 | 비율 | 거래수 |\n`;
+              md += `|----------|------|------|--------|\n`;
+              monthBreakdown.forEach(r => {
+                md += `| ${r.category} | ₩${fmtN(Math.abs(r.total))} | ${r.pct}% | ${r.count}건 |\n`;
+              });
+            }
+            md += '\n';
+          });
+        }
+
+        md += '---\n\n';
+      });
+
+      // 클립보드에 복사
+      navigator.clipboard.writeText(md).then(() => {
+        toast('마크다운 형식으로 복사되었습니다 (Notion 붙여넣기 가능)');
+      }).catch(err => {
+        console.error('복사 실패:', err);
+        toast('복사 실패했습니다');
+      });
+    }
       navigator.clipboard.writeText(txt)
         .then(() => toast('리포트가 복사되었습니다'))
         .catch(() => toast('복사 실패 - 브라우저 권한을 확인하세요'));
