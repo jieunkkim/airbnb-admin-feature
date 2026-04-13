@@ -1457,9 +1457,21 @@
     }
 
     function openImportRulesModal() {
-      document.getElementById('mo_importRules').style.display = 'flex';
-      document.getElementById('ruleInputText').value = '';
-      document.getElementById('ruleInputText').focus();
+      console.log('[DEBUG] openImportRulesModal called');
+      const modal = document.getElementById('mo_importRules');
+      console.log('[DEBUG] modal element:', modal);
+      if (modal) {
+        modal.style.display = 'flex';
+        console.log('[DEBUG] modal display set to flex');
+        const textarea = document.getElementById('ruleInputText');
+        if (textarea) {
+          textarea.value = '';
+          textarea.focus();
+          console.log('[DEBUG] textarea focused');
+        }
+      } else {
+        console.error('[ERROR] mo_importRules element not found');
+      }
     }
 
     function closeImportRulesModal() {
