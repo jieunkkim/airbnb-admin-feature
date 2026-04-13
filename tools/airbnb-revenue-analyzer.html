@@ -352,7 +352,8 @@
     #chartsRow > .card { min-width:0;overflow:hidden }
 
     /* 인사이트 배지 */
-    #reportInsightRow { display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px }
+    #reportInsightRow { display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px }
+    @media(max-width:860px) { #reportInsightRow { grid-template-columns:1fr } }
     .insight-badge {
       padding:8px 12px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r8);
       font-size:12px;display:flex;flex-direction:column;gap:3px
