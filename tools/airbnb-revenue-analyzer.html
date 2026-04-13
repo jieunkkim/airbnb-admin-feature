@@ -396,7 +396,7 @@
       <div class="step-tab active" onclick="switchStep(0)">1. 데이터 입력</div>
       <div class="step-tab" onclick="switchStep(1)">2. 분류 규칙</div>
       <div class="step-tab" onclick="switchStep(2)">3. 분류 적용</div>
-      <div class="step-tab" onclick="switchStep(3)">4. 제외 관리</div>
+      <div class="step-tab" onclick="switchStep(3)">4. 데이터 검토</div>
       <div class="step-tab" onclick="switchStep(4)">5. 리포트</div>
     </div>
 
@@ -590,7 +590,7 @@
 
         <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 22px 16px">
           <button class="notion-btn" onclick="switchStep(1)">규칙 수정</button>
-          <button class="notion-btn primary" onclick="completeStep3()">제외 관리로 이동</button>
+          <button class="notion-btn primary" onclick="completeStep3()">데이터 검토로 이동</button>
         </div>
 
         <div class="card-body" style="padding-bottom:0">
@@ -638,11 +638,11 @@
     </div>
 
     <div class="step-content">
-      <!-- 제외 관리 + 거래내역 테이블 -->
+      <!-- 데이터 검토 + 거래내역 테이블 -->
       <div class="card" style="margin-bottom:16px">
         <div class="card-hdr">
-          <div class="card-ico" style="background:rgba(220,38,38,.1)">🚫</div>
-          <span class="card-ttl">제외 관리</span>
+          <div class="card-ico" style="background:rgba(232,101,10,.1)">📋</div>
+          <span class="card-ttl">데이터 검토</span>
           <span id="excludeCountBadge" style="margin-left:auto;font-size:12px;color:var(--t3);font-weight:600"></span>
         </div>
 
@@ -650,7 +650,8 @@
           <p style="font-size:13px;color:var(--t2);margin-bottom:16px">리포트에서 제외할 거래내역을 선택하세요. 제외된 항목은 수익 계산에 포함되지 않습니다.</p>
         </div>
 
-        <div style="display:flex;justify-content:flex-end;padding:0 22px 16px">
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 22px 16px">
+          <button class="notion-btn" onclick="exportReviewData()" style="font-size:13px;padding:7px 14px">📋 내보내기</button>
           <button class="notion-btn" style="background:var(--rd);color:#fff;font-size:14px;padding:10px 24px" onclick="completeStep4()">리포트 생성</button>
         </div>
 
@@ -1820,7 +1821,7 @@
       proceedToExclude();
     }
 
-    /* ── EXCLUDE (Step 4) ── */
+    /* ── DATA REVIEW (Step 4) ── */
     function toggleExclude(txId) {
       const tx = state.transactions.find(t => t.id === txId);
       if (!tx) return;
@@ -2411,6 +2412,27 @@
         html2canvas: { scale: 2 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       }).from(el).save();
+    }
+
+    function exportReviewData() {
+      const active = state.transactions.filter(tx => !tx.excluded);
+      if (!active.length) {
+        toast('내보낼 데이터가 없습니다');
+        return;
+      }
+
+      // 헤더 작성
+      let txt = '날짜\t설명\t메모\t금액\t카테고리\n';
+
+      // 데이터 행 작성
+      active.forEach(tx => {
+        const amount = tx.amount < 0 ? `-${Math.abs(tx.amount)}` : tx.amount;
+        txt += `${tx.date}\t${tx.desc}\t${tx.memo || '-'}\t${amount}\t${tx.category}\n`;
+      });
+
+      navigator.clipboard.writeText(txt)
+        .then(() => toast('데이터가 복사되었습니다 (엑셀에 붙여넣기 가능)'))
+        .catch(() => toast('복사 실패 - 브라우저 권한을 확인하세요'));
     }
 
     function showWarn(msg) {
