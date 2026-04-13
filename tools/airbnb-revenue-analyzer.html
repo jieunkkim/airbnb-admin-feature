@@ -7,25 +7,7 @@
   <link rel="stylesheet" href="../styles.css">
   <style>
     /* ── BACK NAV ── */
-    .back-nav {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--t2);
-      text-decoration: none;
-      margin-bottom: 16px;
-      padding: 8px 12px;
-      border-radius: var(--r8);
-      background: var(--s2);
-      border: 1px solid var(--b1);
-      transition: all 0.2s;
-    }
-    .back-nav:hover {
-      background: var(--s3);
-      color: var(--t1);
-    }
+    /* styles.css에서 공통 스타일 상속 */
 
     /* ── STEP TABS ── */
     .step-tabs {
@@ -321,6 +303,30 @@
     }
     .period-chip:hover { background:var(--s2) }
     .period-chip.active { background:var(--ac);border-color:var(--ac);color:#fff }
+
+    /* 미분류 배너 */
+    #reportUnclassifiedBanner {
+      padding:14px 16px;background:rgba(217,119,6,.08);border:1px solid var(--am);
+      border-radius:var(--r8);margin-bottom:16px;display:none;align-items:center;justify-content:space-between;gap:12px
+    }
+    #reportUnclassifiedBanner.show { display:flex }
+    #reportUnclassifiedBanner .banner-text { font-size:13px;color:var(--t1);flex:1 }
+    #reportUnclassifiedBanner .banner-btn {
+      padding:6px 14px;background:var(--am);color:#fff;border:none;border-radius:var(--r6);
+      font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap
+    }
+
+    /* 수입/지출 비율 바 */
+    #reportSummaryBar {
+      padding:12px 16px;background:var(--s1);border:1px solid var(--b1);
+      border-radius:var(--r8);margin-bottom:16px
+    }
+    .summary-bar-label { font-size:12px;color:var(--t3);margin-bottom:8px;display:flex;justify-content:space-between }
+    .summary-bar-track {
+      width:100%;height:20px;background:var(--s2);border-radius:var(--r4);overflow:hidden;display:flex
+    }
+    .summary-bar-fill { height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff }
+
     #kpiRow { display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px }
     .kpi-card {
       padding:16px 18px;background:var(--s1);border:1px solid var(--b1);
@@ -329,10 +335,28 @@
     .kpi-label { font-size:12px;color:var(--t3);font-weight:600 }
     .kpi-value { font-size:22px;font-weight:700;color:var(--t1) }
     .kpi-sub   { font-size:11px;color:var(--t3) }
-    #chartsRow { display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;overflow-x:auto }
+
+    #chartsRow { overflow-x:auto }
     #chartsRow > .card { min-width:0;overflow:hidden }
-    @media(max-width:640px){ #kpiRow{grid-template-columns:1fr 1fr} #chartsRow{grid-template-columns:1fr;overflow-x:visible} }
-    @media(max-width:400px){ #kpiRow{grid-template-columns:1fr} }
+
+    /* 인사이트 배지 */
+    #reportInsightRow { display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px }
+    .insight-badge {
+      padding:10px 14px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r8);
+      font-size:12px;display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px
+    }
+    .insight-badge-label { font-size:10px;color:var(--t3);font-weight:600 }
+    .insight-badge-value { font-size:14px;font-weight:700;color:var(--t1) }
+
+    @media(max-width:640px){
+      #kpiRow{grid-template-columns:1fr 1fr}
+      #chartsRow{overflow-x:visible}
+      .insight-badge { min-width:auto }
+    }
+    @media(max-width:400px){
+      #kpiRow{grid-template-columns:1fr}
+      .insight-badge { min-width:auto }
+    }
 
     @media print {
       .back-nav,
@@ -360,6 +384,7 @@
       <div>
         <h1 class="pg-title">에어비앤비 <span>수익 분석기</span><span class="ver-badge">v1 · 2026-04-12</span></h1>
         <p class="pg-sub">거래내역을 붙여넣기하여 자동으로 분류하고 수익을 분석하세요</p>
+        <div style="margin-top:10px; display:inline-flex; background:var(--s2); border:1px solid var(--b2); border-radius:var(--r8); padding:8px 14px; font-size:12px; color:#c97a3a; line-height:1.7">본 분석 도구는 참고용이며, 실제 거래 시 변동될 수 있습니다. 무단 복제 및 배포를 금합니다. © 2026 에이치런(h.run) All rights reserved.</div>
       </div>
       <div class="hdr-btns">
         <button class="notion-btn" onclick="resetAll()">↺ 초기화</button>
@@ -395,7 +420,7 @@
           </div>
 
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
-            <button class="notion-btn primary" onclick="parseData()">다음 →</button>
+            <button class="notion-btn primary" onclick="parseData()">다음</button>
           </div>
 
           <div id="parseMsg" style="display:none;margin-top:12px"></div>
@@ -434,7 +459,7 @@
 
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
             <button class="notion-btn" onclick="backToParse()">이전</button>
-            <button class="notion-btn primary" onclick="confirmMapping()">확인 →</button>
+            <button class="notion-btn primary" onclick="confirmMapping()">확인</button>
           </div>
 
           <div id="mapMsg" style="display:none;margin-top:12px"></div>
@@ -451,7 +476,7 @@
 
         <div style="display:flex;justify-content:flex-end;gap:8px;padding:16px 22px 0">
           <button class="notion-btn" onclick="backToMap()">이전</button>
-          <button class="notion-btn primary" onclick="completeStep1()">다음 단계 →</button>
+          <button class="notion-btn primary" onclick="completeStep1()">다음</button>
         </div>
 
         <div class="card-body" style="padding-bottom:0">
@@ -524,7 +549,7 @@
 
       <!-- PROCEED BUTTON -->
       <div style="padding:0 22px 22px">
-        <button class="notion-btn primary" style="width:100%" onclick="completeStep2()">분류 적용하기 →</button>
+        <button class="notion-btn primary" style="width:100%" onclick="completeStep2()">분류 적용하기</button>
       </div>
 
     </div>
@@ -564,8 +589,8 @@
         </div>
 
         <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 22px 16px">
-          <button class="notion-btn" onclick="switchStep(1)">← 규칙 수정</button>
-          <button class="notion-btn primary" onclick="completeStep3()">제외 관리로 이동 →</button>
+          <button class="notion-btn" onclick="switchStep(1)">규칙 수정</button>
+          <button class="notion-btn primary" onclick="completeStep3()">제외 관리로 이동</button>
         </div>
 
         <div class="card-body" style="padding-bottom:0">
@@ -626,7 +651,7 @@
         </div>
 
         <div style="display:flex;justify-content:flex-end;padding:0 22px 16px">
-          <button class="notion-btn" style="background:var(--rd);color:#fff;font-size:14px;padding:10px 24px" onclick="completeStep4()">리포트 생성 →</button>
+          <button class="notion-btn" style="background:var(--rd);color:#fff;font-size:14px;padding:10px 24px" onclick="completeStep4()">리포트 생성</button>
         </div>
 
         <div class="card-body">
@@ -694,16 +719,33 @@
           <!-- 기간 선택 칩 -->
           <div id="reportPeriodBar"></div>
 
+          <!-- 미분류 거래 경고 배너 -->
+          <div id="reportUnclassifiedBanner"></div>
+
           <!-- KPI 카드 (총수입, 총지출, 순이익) -->
           <div id="kpiRow"></div>
 
-          <!-- 차트 영역 (카테고리 비율만) -->
-          <div id="chartsRow" style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">
+          <!-- 수입/지출 비율 바 -->
+          <div id="reportSummaryBar"></div>
+
+          <!-- 차트 영역 (도넛 차트 - 단월 뷰) -->
+          <div id="chartsRow" style="display:none;grid-template-columns:1fr;gap:16px;margin-bottom:20px">
             <div class="card" style="padding:16px;display:flex;flex-direction:column;align-items:center">
               <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">카테고리 비율</div>
               <canvas id="categoryDoughnutChart" height="300" width="300"></canvas>
             </div>
           </div>
+
+          <!-- 월별 라인 차트 영역 (연간 뷰) -->
+          <div id="monthlyChartSection" style="display:none;margin-bottom:20px">
+            <div class="card" style="padding:16px;display:flex;flex-direction:column">
+              <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">월별 추이</div>
+              <canvas id="monthlyLineChart" height="300"></canvas>
+            </div>
+          </div>
+
+          <!-- 인사이트 배지 -->
+          <div id="reportInsightRow"></div>
 
           <!-- 카테고리별 상세 (토글) -->
           <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">카테고리별 상세</div>
@@ -1878,6 +1920,7 @@
     const reportState = { year: null, month: null };
     let barChartInstance = null;
     let doughnutChartInstance = null;
+    let lineChartInstance = null;
 
     function getActiveTransactions() {
       return state.transactions.filter(tx => !tx.excluded);
@@ -1903,9 +1946,12 @@
     function calcCategoryBreakdown(txs) {
       const map = {};
       CATEGORIES.forEach(c => { map[c] = { total: 0, count: 0 }; });
-      txs.forEach(tx => {
-        map[tx.category].total += tx.amount;
-        map[tx.category].count++;
+      // 분류된 거래만 처리 (미분류는 제외)
+      txs.filter(tx => tx.category !== null).forEach(tx => {
+        if (map[tx.category]) {
+          map[tx.category].total += tx.amount;
+          map[tx.category].count++;
+        }
       });
       const grandTotal = Object.values(map).reduce((s, v) => s + Math.abs(v.total), 0);
       return CATEGORIES.map(c => ({
@@ -1946,6 +1992,95 @@
       return { labels, income, expense };
     }
 
+    /* ── NEW REPORT HELPER FUNCTIONS ── */
+    function getMonthsWithData(txs, year) {
+      const months = new Set(filterByPeriod(txs, year, null).map(tx => tx.date.slice(5, 7)));
+      return [...months].sort();
+    }
+
+    function renderSummaryBar(kpi) {
+      const container = document.getElementById('reportSummaryBar');
+      if (!container) return;
+      const income = Number(kpi.income) || 0;
+      const expense = Number(kpi.expense) || 0;
+      const total = income + expense;
+      if (total === 0) {
+        container.innerHTML = '';
+        return;
+      }
+      const incomePct = Math.round((income / total) * 100);
+      const expensePct = 100 - incomePct;
+      container.innerHTML = `
+        <div class="summary-bar-label">
+          <span>수입 · 지출 비율</span>
+          <span style="color:var(--t1);font-weight:600">${incomePct}% · ${expensePct}%</span>
+        </div>
+        <div class="summary-bar-track">
+          <div class="summary-bar-fill" style="width:${incomePct}%;background:var(--gr)">${incomePct}%</div>
+          <div class="summary-bar-fill" style="width:${expensePct}%;background:var(--rd)">${expensePct}%</div>
+        </div>
+      `;
+    }
+
+    function renderUnclassifiedBanner(allTxs) {
+      const container = document.getElementById('reportUnclassifiedBanner');
+      if (!container) return;
+      const unclassified = allTxs.filter(tx => !tx.excluded && tx.category === null);
+      if (unclassified.length === 0) {
+        container.classList.remove('show');
+        return;
+      }
+      container.innerHTML = `
+        <div class="banner-text">⚠️ ${unclassified.length}건의 거래가 미분류됩니다</div>
+        <button class="banner-btn" onclick="switchStep(1)">규칙 탭으로</button>
+      `;
+      container.classList.add('show');
+    }
+
+    function renderInsights(kpi, breakdown, allTxs, year, month) {
+      const container = document.getElementById('reportInsightRow');
+      if (!container) return;
+      const income = Number(kpi.income) || 0;
+      const net = Number(kpi.net) || 0;
+
+      let badges = [];
+
+      // 카테고리별 차지하는 비율과 금액
+      breakdown.forEach(cat => {
+        const colorInfo = getCategoryColor(cat.category);
+        const colorFg = colorInfo.fg || colorInfo;
+        badges.push({
+          label: cat.category,
+          value: `₩${fmtN(Math.abs(cat.total))}`,
+          sub: `${cat.pct}%`,
+          color: colorFg
+        });
+      });
+
+      // 수익률
+      if (income > 0) {
+        const profitMargin = Math.round((net / income) * 100);
+        badges.push({
+          label: '수익률',
+          value: `${profitMargin}%`,
+          color: net >= 0 ? 'var(--gr)' : 'var(--rd)'
+        });
+      }
+
+      if (badges.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = badges.map(b => `
+        <div class="insight-badge" style="border-left:3px solid ${b.color}">
+          <div class="insight-badge-label">${b.label}</div>
+          <div class="insight-badge-value" style="color:${b.color || 'var(--t1)'}">${b.value}</div>
+          ${b.sub ? `<div style="font-size:11px;color:var(--t3)">${b.sub}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
     function renderReport() {
       const all = getActiveTransactions();
       console.log('[Report] Active transactions:', all.length);
@@ -1961,13 +2096,46 @@
       }
       console.log('[Report] Selected year:', reportState.year);
       renderPeriodBar(years);
+
       const periodTxs = reportState.month
         ? filterByPeriod(all, reportState.year, reportState.month)
         : filterByPeriod(all, reportState.year, null);
       console.log('[Report] Period transactions:', periodTxs.length);
-      renderKpiCards(calcKpi(periodTxs));
-      renderDoughnutChart(calcCategoryBreakdown(periodTxs));
-      renderCategoryDetails(calcCategoryBreakdown(periodTxs));
+
+      // 리포트 통계는 분류된 거래만 포함
+      const classifiedTxs = periodTxs.filter(tx => tx.category !== null);
+      const kpi = calcKpi(classifiedTxs);
+      const breakdown = calcCategoryBreakdown(classifiedTxs);
+
+      renderUnclassifiedBanner(all);
+      renderKpiCards(kpi);
+      renderSummaryBar(kpi);
+
+      // 조건부 렌더링: 단월 뷰 vs 연간 뷰
+      const chartsRow = document.getElementById('chartsRow');
+      const monthlyChartSection = document.getElementById('monthlyChartSection');
+      const isSingleMonth = reportState.month !== null;
+      const monthsWithData = getMonthsWithData(all, reportState.year);
+      const isMultiMonth = monthsWithData.length > 1;
+
+      if (isSingleMonth) {
+        // 단월 뷰: 도넛 차트만 표시
+        chartsRow.style.display = 'grid';
+        monthlyChartSection.style.display = 'none';
+        renderDoughnutChart(breakdown);
+      } else if (isMultiMonth) {
+        // 연간 뷰 (달 2개 이상): 라인 차트만 표시
+        chartsRow.style.display = 'none';
+        monthlyChartSection.style.display = 'block';
+        renderMonthlyLineChart(all, reportState.year);
+      } else {
+        // 연간 뷰 (달 1개): 둘 다 숨김
+        chartsRow.style.display = 'none';
+        monthlyChartSection.style.display = 'none';
+      }
+
+      renderInsights(kpi, breakdown, all, reportState.year, reportState.month);
+      renderCategoryDetails(breakdown, classifiedTxs);
     }
 
     function renderPeriodBar(years) {
@@ -2013,8 +2181,8 @@
 
     const CAT_COLORS = ['#e8650a','#16a34a','#2563eb','#d97706','#9333ea','#0891b2','#dc2626','#64748b'];
 
-    function renderMonthlyChart(allTxs, year) {
-      const canvas = document.getElementById('monthlyBarChart');
+    function renderMonthlyLineChart(allTxs, year) {
+      const canvas = document.getElementById('monthlyLineChart');
       if (!canvas || !allTxs || !year) return;
       year = String(year);  // 문자열로 명시적 변환
       const { labels, income, expense } = buildMonthlyChartData(allTxs, year);
@@ -2022,9 +2190,9 @@
       // 데이터 검증
       const totalIncome = income.reduce((s, v) => s + v, 0);
       const totalExpense = expense.reduce((s, v) => s + v, 0);
-      console.log('[Report] Monthly chart data:', { year, totalIncome, totalExpense, incomeArray: income, expenseArray: expense });
+      console.log('[Report] Monthly line chart data:', { year, totalIncome, totalExpense, incomeArray: income, expenseArray: expense });
 
-      if (barChartInstance) { barChartInstance.destroy(); barChartInstance = null; }
+      if (lineChartInstance) { lineChartInstance.destroy(); lineChartInstance = null; }
 
       if (totalIncome === 0 && totalExpense === 0) {
         console.warn('[Report] No monthly data for year:', year);
@@ -2032,28 +2200,45 @@
       }
 
       const maxValue = Math.max(...income, ...expense, 0);
-      // 만원 단위로 올림 (예: 60,000,000 → 6,000만원)
+      // 만원 단위로 올림
       const maxManWon = maxValue > 0 ? Math.ceil(maxValue / 10000) : 100;
-      // yMax를 5칸으로 고정하기 위해 올림 (만원 단위)
       const roundedMaxManWon = Math.ceil(maxManWon / 5) * 5;
-      // yMax는 원 단위로 설정
       const yMax = roundedMaxManWon * 10000;
-      // y축 5칸 고정: max값 / 5
       const stepManWon = roundedMaxManWon / 5;
       const stepSize = stepManWon * 10000;
 
       // canvas 크기 부모 요소에 맞추기
-      const parentWidth = canvas.parentElement.offsetWidth - 32;  // padding 제외
+      const parentWidth = canvas.parentElement.offsetWidth - 32;
       canvas.width = parentWidth;
       canvas.height = 280;
 
-      barChartInstance = new Chart(canvas, {
-        type: 'bar',
+      lineChartInstance = new Chart(canvas, {
+        type: 'line',
         data: {
           labels,
           datasets: [
-            { label: '수입', data: income,  backgroundColor: 'rgba(22,163,74,.7)',  borderRadius: 4 },
-            { label: '지출', data: expense, backgroundColor: 'rgba(220,38,38,.5)', borderRadius: 4 }
+            {
+              label: '수입',
+              data: income,
+              borderColor: '#16a34a',
+              backgroundColor: 'rgba(22,163,74,.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3,
+              pointBackgroundColor: '#16a34a',
+              pointRadius: 4
+            },
+            {
+              label: '지출',
+              data: expense,
+              borderColor: '#dc2626',
+              backgroundColor: 'rgba(220,38,38,.1)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3,
+              pointBackgroundColor: '#dc2626',
+              pointRadius: 4
+            }
           ]
         },
         options: {
@@ -2093,8 +2278,18 @@
         console.warn('[Report] No breakdown data for doughnut chart');
         return;
       }
-      const labels = breakdown.map(r => `${r.category} (${r.pct}%)`);
+      const labels = breakdown.map(r => r.category);
       const data   = breakdown.map(r => Math.abs(r.total));
+      const bgColors = breakdown.map(r => {
+        const color = getCategoryColor(r.category);
+        let bgColor = color.bg || color;
+        // rgba 색상을 더 진하게 만들기 (알파값 증가)
+        if (bgColor.startsWith('rgba')) {
+          bgColor = bgColor.replace(/,\s*[\d.]+\)/, ', 0.6)');
+        }
+        return bgColor;
+      });
+
       if (doughnutChartInstance) { doughnutChartInstance.destroy(); doughnutChartInstance = null; }
       // canvas 크기 명시적 설정
       canvas.width = canvas.parentElement.offsetWidth;
@@ -2103,28 +2298,45 @@
         type: 'doughnut',
         data: {
           labels,
-          datasets: [{ data, backgroundColor: CAT_COLORS.slice(0, labels.length), borderWidth: 2, borderColor: '#fff' }]
+          datasets: [{
+            data,
+            backgroundColor: bgColors,
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
         },
         options: {
           responsive: false,
           plugins: {
             legend: { position: 'bottom', labels: { font: { size: 12 }, boxWidth: 14, padding: 15 } },
-            tooltip: { callbacks: { label: ctx => ` ₩${fmtN(ctx.raw)}` } }
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const idx = ctx.dataIndex;
+                  const pct = breakdown[idx]?.pct || 0;
+                  return ` ₩${fmtN(ctx.raw)} (${pct}%)`;
+                }
+              }
+            }
           }
         }
       });
       console.log('[Report] Doughnut chart rendered:', labels);
     }
 
-    function renderCategoryDetails(breakdown) {
+    function renderCategoryDetails(breakdown, periodTxs) {
       const container = document.getElementById('reportCatDetailsContainer');
       if (!container) return;
 
-      const html = breakdown.map((r, idx) => `
+      const html = breakdown.map((r, idx) => {
+        const colorInfo = getCategoryColor(r.category);
+        const colorFg = colorInfo.fg || colorInfo;
+        return `
         <div style="margin-bottom:12px;border:1px solid var(--b1);border-radius:var(--r8);overflow:hidden">
           <!-- 토글 헤더 -->
           <div style="padding:14px 16px;background:var(--s2);cursor:pointer;display:flex;align-items:center;gap:12px" onclick="toggleCategoryDetail('detail${idx}', this)">
             <span id="icon${idx}" style="font-size:14px">▼</span>
+            <div style="width:8px;height:8px;border-radius:50%;background:${colorFg};flex-shrink:0"></div>
             <span style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${esc(r.category)}</span>
             <span style="font-size:13px;font-weight:600;color:var(--t2)">₩${fmtN(Math.abs(r.total))}</span>
             <span style="font-size:12px;color:var(--t3);min-width:40px;text-align:right">${r.pct}%</span>
@@ -2136,14 +2348,14 @@
             <div id="catTxs${idx}"></div>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
 
       container.innerHTML = html;
 
-      // 각 카테고리의 거래 내역 렌더링
-      const classifiedTxs = state.transactions.filter(tx => !tx.excluded && tx.category !== null);
+      // 각 카테고리의 거래 내역 렌더링 (선택한 기간에서만)
       breakdown.forEach((r, idx) => {
-        const catTxs = classifiedTxs.filter(tx => tx.category === r.category);
+        const catTxs = periodTxs.filter(tx => tx.category === r.category);
         const txsHtml = catTxs.map(tx => `
           <div style="padding:8px;border-bottom:1px solid var(--b2);font-size:11px">
             <div style="display:flex;justify-content:space-between;margin-bottom:4px">
