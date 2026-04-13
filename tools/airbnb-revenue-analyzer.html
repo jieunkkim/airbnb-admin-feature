@@ -2200,13 +2200,11 @@
       }
 
       // 인사이트
-      const insightRowHtml = document.createElement('div');
       renderInsights(kpi, breakdown, allTxs, year, null);
       const insightHtml = document.getElementById('reportInsightRow').innerHTML;
       html += `<div style="margin-bottom:20px">${insightHtml}</div>`;
 
       // 카테고리 상세
-      const catDetailsContainer = document.createElement('div');
       renderCategoryDetails(breakdown, classifiedTxs);
       const catDetailsHtml = document.getElementById('reportCatDetailsContainer').innerHTML;
       html += `<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">카테고리별 상세</div>${catDetailsHtml}</div>`;
