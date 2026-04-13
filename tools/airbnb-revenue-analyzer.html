@@ -2211,14 +2211,17 @@
 
       wrapper.innerHTML = html;
 
-      // 차트 렌더링
+      // 라인 차트 렌더링 (wrapper 반환 전에 차트 생성)
       if (monthsWithData.length > 1) {
         const canvasId = `line-${year}`;
-        const canvas = wrapper.querySelector(`#${canvasId}`);
-        if (canvas) {
-          const chartInstance = renderMonthlyLineChart(allTxs, year, canvasId);
-          if (chartInstance) reportChartInstances.push(chartInstance);
-        }
+        // setTimeout으로 DOM 레이아웃 완료 후 차트 렌더링
+        setTimeout(() => {
+          const canvas = document.getElementById(canvasId);
+          if (canvas) {
+            const chartInstance = renderMonthlyLineChart(allTxs, year, canvasId);
+            if (chartInstance) reportChartInstances.push(chartInstance);
+          }
+        }, 0);
       }
 
       return wrapper;
@@ -2278,11 +2281,16 @@
 
       wrapper.innerHTML = html;
 
-      // 도넛 차트 렌더링
-      const canvas = wrapper.querySelector(`#${canvasId}`);
-      if (canvas && breakdown.length > 0) {
-        const chartInstance = renderDoughnutChart(breakdown, canvasId);
-        if (chartInstance) reportChartInstances.push(chartInstance);
+      // 도넛 차트 렌더링 (wrapper 반환 전에 차트 생성)
+      if (breakdown.length > 0) {
+        // setTimeout으로 DOM 레이아웃 완료 후 차트 렌더링
+        setTimeout(() => {
+          const canvas = document.getElementById(canvasId);
+          if (canvas) {
+            const chartInstance = renderDoughnutChart(breakdown, canvasId);
+            if (chartInstance) reportChartInstances.push(chartInstance);
+          }
+        }, 0);
       }
 
       return wrapper;
