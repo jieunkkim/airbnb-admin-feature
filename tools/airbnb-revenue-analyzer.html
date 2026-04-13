@@ -352,13 +352,13 @@
     #chartsRow > .card { min-width:0;overflow:hidden }
 
     /* 인사이트 배지 */
-    #reportInsightRow { display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px }
+    #reportInsightRow { display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px;align-items:flex-start }
     .insight-badge {
-      padding:10px 14px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r8);
-      font-size:12px;display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px
+      padding:8px 12px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r8);
+      font-size:12px;display:flex;flex-direction:column;gap:2px;flex:0 1 auto;white-space:nowrap
     }
     .insight-badge-label { font-size:10px;color:var(--t3);font-weight:600 }
-    .insight-badge-value { font-size:14px;font-weight:700;color:var(--t1) }
+    .insight-badge-value { font-size:13px;font-weight:700;color:var(--t1) }
 
     @media(max-width:640px){
       #kpiRow{grid-template-columns:1fr 1fr}
