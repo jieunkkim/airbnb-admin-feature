@@ -713,7 +713,7 @@
           <span class="card-ttl">리포트</span>
           <div style="margin-left:auto;display:flex;gap:8px">
             <button class="notion-btn" onclick="copyReportText()" style="font-size:13px;padding:7px 14px">📋 복사</button>
-            <button class="notion-btn primary" onclick="downloadPdf()" style="font-size:13px;padding:7px 14px">⬇ PDF</button>
+            <button class="notion-btn primary" onclick="openPdfOptionsModal()" style="font-size:13px;padding:7px 14px;display:none">⬇ PDF</button>
           </div>
         </div>
         <div class="card-body">
@@ -822,6 +822,59 @@
         <div class="mo-acts" style="gap:10px">
           <button class="mo-btn p" onclick="excludeMismatched()" style="background:var(--rd)">제외하기</button>
           <button class="mo-btn s" onclick="ignoreMismatch()">무시하고 진행</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: PDF EXPORT OPTIONS -->
+    <div class="mo-ov" id="mo_pdfOptions" onclick="if(event.target===this)closePdfOptionsModal()">
+      <div class="mo">
+        <div class="mo-hdr">
+          <span class="mo-ttl">⬇ PDF 내보내기</span>
+          <button class="mo-x" onclick="closePdfOptionsModal()">✕</button>
+        </div>
+        <p class="mo-desc">PDF에 포함할 내용을 선택하세요.</p>
+
+        <div class="mo-body">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;background:var(--s2);border-radius:var(--r8)">
+              <input type="radio" name="pdfOption" value="full" checked style="cursor:pointer">
+              <div>
+                <div style="font-weight:600;color:var(--t1)">전체 보고서 (권장)</div>
+                <div style="font-size:12px;color:var(--t3)">KPI, 차트, 카테고리별 상세 포함</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px;background:var(--s2);border-radius:var(--r8)">
+              <input type="radio" name="pdfOption" value="summary" style="cursor:pointer">
+              <div>
+                <div style="font-weight:600;color:var(--t1)">요약 보고서</div>
+                <div style="font-size:12px;color:var(--t3)">KPI와 차트만 포함 (카테고리별 상세 제외)</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="mo-acts" style="gap:10px">
+          <button class="mo-btn s" onclick="closePdfOptionsModal()">취소</button>
+          <button class="mo-btn s" onclick="previewPdfContent()">👁 미리보기</button>
+          <button class="mo-btn p" onclick="executePdfExport()">⬇ PDF 내보내기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF 미리보기 모달 -->
+    <div class="mo-ov" id="mo_pdfPreview" onclick="if(event.target===this)closePdfPreviewModal()">
+      <div class="mo" style="width:820px;max-width:90vw;max-height:90vh;overflow-y:auto">
+        <div class="mo-hdr">
+          <span class="mo-ttl">👁 PDF 미리보기</span>
+          <button class="mo-x" onclick="closePdfPreviewModal()">✕</button>
+        </div>
+        <div class="mo-body" id="pdfPreviewContent" style="background:#fff;border:1px solid var(--b2);border-radius:var(--r8);padding:20px;overflow-y:auto;max-height:calc(90vh - 120px)">
+          <!-- 미리보기 내용이 여기 삽입됨 -->
+        </div>
+        <div class="mo-acts">
+          <button class="mo-btn s" onclick="closePdfPreviewModal()">취소</button>
+          <button class="mo-btn p" onclick="downloadPdfFromPreview()">⬇ PDF 다운로드</button>
         </div>
       </div>
     </div>
@@ -2401,18 +2454,6 @@
         .catch(() => toast('복사 실패 - 브라우저 권한을 확인하세요'));
     }
 
-    function downloadPdf() {
-      const el = document.querySelector('.step-content.active');
-      if (!el || typeof html2pdf === 'undefined') { toast('PDF 라이브러리를 로드 중...'); return; }
-      const year = reportState.year || '';
-      const mon  = reportState.month ? `${parseInt(reportState.month)}월` : '전체';
-      html2pdf().set({
-        margin: 10,
-        filename: `에어비앤비-리포트-${year}-${mon}.pdf`,
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).from(el).save();
-    }
 
     function exportReviewData() {
       const active = state.transactions.filter(tx => !tx.excluded);
@@ -2471,5 +2512,8 @@
       return num.toLocaleString('ko-KR');
     }
   </script>
+
+  <!-- PDF Utilities -->
+  <script src="../js/airbnb-revenue-analyzer/pdf-utils.js"></script>
 </body>
 </html>
