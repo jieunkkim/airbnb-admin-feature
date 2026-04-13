@@ -531,6 +531,7 @@
           <div class="card-ico" style="background:rgba(37,99,235,.1)">🏷️</div>
           <span class="card-ttl">분류 규칙</span>
           <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="notion-btn" onclick="exportRulesAsText()" title="규칙을 텍스트로 클립보드에 복사">규칙 내보내기</button>
             <button class="notion-btn" onclick="openImportRulesModal()" title="텍스트에서 규칙 불러오기">규칙 불러오기</button>
             <button class="notion-btn" onclick="resetRules()" title="기본 규칙으로 초기화">↺ 초기화</button>
           </div>
@@ -1555,6 +1556,19 @@
       if (modal) {
         modal.classList.remove('open');
       }
+    }
+
+    function exportRulesAsText() {
+      if (!state.rules || state.rules.length === 0) {
+        toast('내보낼 규칙이 없습니다');
+        return;
+      }
+      const text = state.rules
+        .map(r => `${r.category} | ${r.keywords.join(',')} | ${r.type}`)
+        .join('\n');
+      navigator.clipboard.writeText(text)
+        .then(() => toast(`${state.rules.length}개 규칙이 복사되었습니다 (규칙 불러오기에 붙여넣기 가능)`))
+        .catch(() => toast('복사 실패 - 브라우저 권한을 확인하세요'));
     }
 
     function importRulesFromText() {
