@@ -296,13 +296,25 @@
     }
 
     /* ── REPORT ── */
-    #reportPeriodBar { display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:20px }
+    #reportPeriodBar {
+      position:sticky;top:0;z-index:10;
+      display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+      padding:10px 0 12px;background:var(--s1);
+      border-bottom:1px solid var(--b2);margin-bottom:24px
+    }
     .period-chip {
       padding:5px 14px;border-radius:var(--r24);border:1px solid var(--b2);
       background:var(--s1);font-size:12px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .15s
     }
     .period-chip:hover { background:var(--s2) }
     .period-chip.active { background:var(--ac);border-color:var(--ac);color:#fff }
+
+    /* 리포트 섹션 */
+    .report-section { margin-bottom:48px }
+    .report-section-title {
+      font-size:17px;font-weight:700;color:var(--t1);
+      border-bottom:2px solid var(--ac);padding-bottom:10px;margin-bottom:20px
+    }
 
     /* 미분류 배너 */
     #reportUnclassifiedBanner {
@@ -717,43 +729,24 @@
           </div>
         </div>
         <div class="card-body">
-          <!-- 기간 선택 칩 -->
+          <!-- 기간 선택 칩 (sticky로 고정됨) -->
           <div id="reportPeriodBar"></div>
 
           <!-- 미분류 거래 경고 배너 -->
           <div id="reportUnclassifiedBanner"></div>
 
-          <!-- KPI 카드 (총수입, 총지출, 순이익) -->
-          <div id="kpiRow"></div>
-
-          <!-- 수입/지출 비율 바 -->
-          <div id="reportSummaryBar"></div>
-
-          <!-- 차트 영역 (도넛 차트 - 단월 뷰) -->
-          <div id="chartsRow" style="display:none;grid-template-columns:1fr;gap:16px;margin-bottom:20px">
-            <div class="card" style="padding:16px;display:flex;flex-direction:column;align-items:center">
-              <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">카테고리 비율</div>
-              <canvas id="categoryDoughnutChart" height="300" width="300"></canvas>
-            </div>
-          </div>
-
-          <!-- 월별 라인 차트 영역 (연간 뷰) -->
-          <div id="monthlyChartSection" style="display:none;margin-bottom:20px">
-            <div class="card" style="padding:16px;display:flex;flex-direction:column">
-              <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">월별 추이</div>
-              <canvas id="monthlyLineChart" height="300"></canvas>
-            </div>
-          </div>
-
-          <!-- 인사이트 배지 -->
-          <div id="reportInsightRow"></div>
-
-          <!-- 카테고리별 상세 (토글) -->
-          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">카테고리별 상세</div>
-          <div id="reportCatDetailsContainer"></div>
+          <!-- 모든 연도·월 섹션이 여기에 렌더링됨 -->
+          <div id="reportAllSections"></div>
         </div>
       </div>
 
+    </div>
+
+    <!-- 임시 컨테이너들 (section 빌드 시 사용) -->
+    <div style="display:none">
+      <div id="reportSummaryBar"></div>
+      <div id="reportInsightRow"></div>
+      <div id="reportCatDetailsContainer"></div>
     </div>
 
     <!-- MODAL: RULE ADD/EDIT -->
@@ -1971,10 +1964,7 @@
     }
 
     /* ── REPORT (Step 5) ── */
-    const reportState = { year: null, month: null };
-    let barChartInstance = null;
-    let doughnutChartInstance = null;
-    let lineChartInstance = null;
+    let reportChartInstances = [];  // 모든 차트 인스턴스 관리
 
     function getActiveTransactions() {
       return state.transactions.filter(tx => !tx.excluded);
@@ -2137,79 +2127,221 @@
 
     function renderReport() {
       const all = getActiveTransactions();
-      console.log('[Report] Active transactions:', all.length);
       if (!all.length) {
         toast('제외되지 않은 거래가 없습니다');
         return;
       }
+
       const years = getYears(all);
-      console.log('[Report] Years found:', years);
-      if (!reportState.year || !years.includes(reportState.year)) {
-        reportState.year = years[years.length - 1];
-        reportState.month = null;
-      }
-      console.log('[Report] Selected year:', reportState.year);
       renderPeriodBar(years);
+      renderUnclassifiedBanner(all);
 
-      const periodTxs = reportState.month
-        ? filterByPeriod(all, reportState.year, reportState.month)
-        : filterByPeriod(all, reportState.year, null);
-      console.log('[Report] Period transactions:', periodTxs.length);
+      // 기존 차트 인스턴스 모두 destroy
+      reportChartInstances.forEach(c => c?.destroy());
+      reportChartInstances = [];
 
-      // 리포트 통계는 분류된 거래만 포함
-      const classifiedTxs = periodTxs.filter(tx => tx.category !== null);
+      // 모든 연도·월 섹션 렌더링
+      const container = document.getElementById('reportAllSections');
+      container.innerHTML = '';
+
+      years.forEach(year => {
+        container.appendChild(buildYearSection(year, all));
+        getMonthsWithData(all, year).sort().forEach(month => {
+          container.appendChild(buildMonthSection(year, month, all));
+        });
+      });
+
+      // Scroll Spy 초기화
+      initScrollSpy();
+    }
+
+    /**
+     * 연도 섹션 빌드
+     */
+    function buildYearSection(year, allTxs) {
+      const wrapper = document.createElement('div');
+      wrapper.id = `report-${year}`;
+      wrapper.className = 'report-section';
+
+      const yearTxs = filterByPeriod(allTxs, year, null);
+      const classifiedTxs = yearTxs.filter(tx => tx.category !== null);
       const kpi = calcKpi(classifiedTxs);
       const breakdown = calcCategoryBreakdown(classifiedTxs);
+      const monthsWithData = getMonthsWithData(allTxs, year);
 
-      renderUnclassifiedBanner(all);
-      renderKpiCards(kpi);
+      let html = `<div class="report-section-title">${year}년</div>`;
+
+      // KPI 카드
+      const incomeStr = fmtN(Math.abs(kpi.income));
+      const expenseStr = fmtN(Math.abs(kpi.expense));
+      const netStr = fmtN(Math.abs(kpi.net));
+      html += `
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+          <div class="kpi-card"><div class="kpi-label">총 수입</div><div class="kpi-value" style="color:var(--gr)">₩${incomeStr}</div></div>
+          <div class="kpi-card"><div class="kpi-label">총 지출</div><div class="kpi-value" style="color:var(--rd)">₩${expenseStr}</div></div>
+          <div class="kpi-card"><div class="kpi-label">순이익</div><div class="kpi-value" style="color:${kpi.net >= 0 ? 'var(--gr)' : 'var(--rd)'}">₩${netStr}</div></div>
+        </div>
+      `;
+
+      // 비율 바
       renderSummaryBar(kpi);
+      const summaryBarHtml = document.getElementById('reportSummaryBar').innerHTML;
+      html += `<div id="temp-summary" style="margin-bottom:20px">${summaryBarHtml}</div>`;
 
-      // 조건부 렌더링: 단월 뷰 vs 연간 뷰
-      const chartsRow = document.getElementById('chartsRow');
-      const monthlyChartSection = document.getElementById('monthlyChartSection');
-      const isSingleMonth = reportState.month !== null;
-      const monthsWithData = getMonthsWithData(all, reportState.year);
-      const isMultiMonth = monthsWithData.length > 1;
-
-      if (isSingleMonth) {
-        // 단월 뷰: 도넛 차트만 표시
-        chartsRow.style.display = 'grid';
-        monthlyChartSection.style.display = 'none';
-        renderDoughnutChart(breakdown);
-      } else if (isMultiMonth) {
-        // 연간 뷰 (달 2개 이상): 라인 차트만 표시
-        chartsRow.style.display = 'none';
-        monthlyChartSection.style.display = 'block';
-        renderMonthlyLineChart(all, reportState.year);
-      } else {
-        // 연간 뷰 (달 1개): 둘 다 숨김
-        chartsRow.style.display = 'none';
-        monthlyChartSection.style.display = 'none';
+      // 라인 차트 (월 2개 이상이면)
+      if (monthsWithData.length > 1) {
+        const canvasId = `line-${year}`;
+        html += `
+          <div class="card" style="padding:16px;display:flex;flex-direction:column;margin-bottom:20px">
+            <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">월별 추이</div>
+            <canvas id="${canvasId}" height="300"></canvas>
+          </div>
+        `;
       }
 
-      renderInsights(kpi, breakdown, all, reportState.year, reportState.month);
+      // 인사이트
+      const insightRowHtml = document.createElement('div');
+      renderInsights(kpi, breakdown, allTxs, year, null);
+      const insightHtml = document.getElementById('reportInsightRow').innerHTML;
+      html += `<div style="margin-bottom:20px">${insightHtml}</div>`;
+
+      // 카테고리 상세
+      const catDetailsContainer = document.createElement('div');
       renderCategoryDetails(breakdown, classifiedTxs);
+      const catDetailsHtml = document.getElementById('reportCatDetailsContainer').innerHTML;
+      html += `<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">카테고리별 상세</div>${catDetailsHtml}</div>`;
+
+      wrapper.innerHTML = html;
+
+      // 차트 렌더링
+      if (monthsWithData.length > 1) {
+        const canvasId = `line-${year}`;
+        const canvas = wrapper.querySelector(`#${canvasId}`);
+        if (canvas) {
+          const chartInstance = renderMonthlyLineChart(allTxs, year, canvasId);
+          if (chartInstance) reportChartInstances.push(chartInstance);
+        }
+      }
+
+      return wrapper;
+    }
+
+    /**
+     * 월 섹션 빌드
+     */
+    function buildMonthSection(year, month, allTxs) {
+      const wrapper = document.createElement('div');
+      wrapper.id = `report-${year}-${month}`;
+      wrapper.className = 'report-section';
+
+      const monthTxs = filterByPeriod(allTxs, year, month);
+      const classifiedTxs = monthTxs.filter(tx => tx.category !== null);
+      const kpi = calcKpi(classifiedTxs);
+      const breakdown = calcCategoryBreakdown(classifiedTxs);
+      const monthName = parseInt(month) + '월';
+
+      let html = `<div class="report-section-title">${year}년 ${monthName}</div>`;
+
+      // KPI 카드
+      const incomeStr = fmtN(Math.abs(kpi.income));
+      const expenseStr = fmtN(Math.abs(kpi.expense));
+      const netStr = fmtN(Math.abs(kpi.net));
+      html += `
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+          <div class="kpi-card"><div class="kpi-label">총 수입</div><div class="kpi-value" style="color:var(--gr)">₩${incomeStr}</div></div>
+          <div class="kpi-card"><div class="kpi-label">총 지출</div><div class="kpi-value" style="color:var(--rd)">₩${expenseStr}</div></div>
+          <div class="kpi-card"><div class="kpi-label">순이익</div><div class="kpi-value" style="color:${kpi.net >= 0 ? 'var(--gr)' : 'var(--rd)'}">₩${netStr}</div></div>
+        </div>
+      `;
+
+      // 비율 바
+      renderSummaryBar(kpi);
+      const summaryBarHtml = document.getElementById('reportSummaryBar').innerHTML;
+      html += `<div style="margin-bottom:20px">${summaryBarHtml}</div>`;
+
+      // 도넛 차트
+      const canvasId = `doughnut-${year}-${month}`;
+      html += `
+        <div class="card" style="padding:16px;display:flex;flex-direction:column;align-items:center;margin-bottom:20px">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">카테고리 비율</div>
+          <canvas id="${canvasId}" height="300" width="300"></canvas>
+        </div>
+      `;
+
+      // 인사이트
+      renderInsights(kpi, breakdown, allTxs, year, month);
+      const insightHtml = document.getElementById('reportInsightRow').innerHTML;
+      html += `<div style="margin-bottom:20px">${insightHtml}</div>`;
+
+      // 카테고리 상세
+      renderCategoryDetails(breakdown, classifiedTxs);
+      const catDetailsHtml = document.getElementById('reportCatDetailsContainer').innerHTML;
+      html += `<div><div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">카테고리별 상세</div>${catDetailsHtml}</div>`;
+
+      wrapper.innerHTML = html;
+
+      // 도넛 차트 렌더링
+      const canvas = wrapper.querySelector(`#${canvasId}`);
+      if (canvas && breakdown.length > 0) {
+        const chartInstance = renderDoughnutChart(breakdown, canvasId);
+        if (chartInstance) reportChartInstances.push(chartInstance);
+      }
+
+      return wrapper;
     }
 
     function renderPeriodBar(years) {
       const bar = document.getElementById('reportPeriodBar');
       if (!bar) return;
-      let html = years.map(y =>
-        `<button class="period-chip${reportState.year === y && !reportState.month ? ' active' : ''}" onclick="setPeriod('${y}', null)">${y}년</button>`
-      ).join('');
-      const all = getActiveTransactions();
-      const months = [...new Set(filterByPeriod(all, reportState.year, null).map(tx => tx.date.slice(5, 7)))].sort();
-      html += months.map(m =>
-        `<button class="period-chip${reportState.year && reportState.month === m ? ' active' : ''}" onclick="setPeriod('${reportState.year}', '${m}')">${parseInt(m)}월</button>`
-      ).join('');
+
+      let html = '';
+
+      // 모든 연도와 월의 라벨 렌더링
+      years.forEach(year => {
+        // 연도 라벨
+        html += `<button class="period-chip" data-target="report-${year}" onclick="scrollToSection('report-${year}')">${year}년</button>`;
+
+        // 해당 연도의 월 라벨들
+        const all = getActiveTransactions();
+        const months = getMonthsWithData(all, year).sort();
+        months.forEach(month => {
+          html += `<button class="period-chip" data-target="report-${year}-${month}" onclick="scrollToSection('report-${year}-${month}')">${parseInt(month)}월</button>`;
+        });
+      });
+
       bar.innerHTML = html;
     }
 
-    function setPeriod(year, month) {
-      reportState.year = year;
-      reportState.month = month;
-      renderReport();
+    /**
+     * 해당 섹션으로 부드럽게 스크롤 이동
+     */
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /**
+     * Scroll Spy: 현재 화면에 보이는 섹션에 따라 라벨 활성화
+     */
+    function initScrollSpy() {
+      if (window._reportSpyObserver) window._reportSpyObserver.disconnect();
+
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+
+          // 모든 라벨 비활성화
+          document.querySelectorAll('.period-chip').forEach(c => c.classList.remove('active'));
+
+          // 현재 섹션에 해당하는 라벨 활성화
+          const chip = document.querySelector(`.period-chip[data-target="${entry.target.id}"]`);
+          if (chip) chip.classList.add('active');
+        });
+      }, { threshold: 0.15, rootMargin: '-10% 0px -70% 0px' });
+
+      // 모든 섹션에 observer 등록
+      document.querySelectorAll('.report-section').forEach(el => observer.observe(el));
+      window._reportSpyObserver = observer;
     }
 
     function renderKpiCards(kpi) {
@@ -2235,8 +2367,8 @@
 
     const CAT_COLORS = ['#e8650a','#16a34a','#2563eb','#d97706','#9333ea','#0891b2','#dc2626','#64748b'];
 
-    function renderMonthlyLineChart(allTxs, year) {
-      const canvas = document.getElementById('monthlyLineChart');
+    function renderMonthlyLineChart(allTxs, year, canvasId) {
+      const canvas = document.getElementById(canvasId);
       if (!canvas || !allTxs || !year) return;
       year = String(year);  // 문자열로 명시적 변환
       const { labels, income, expense } = buildMonthlyChartData(allTxs, year);
@@ -2245,8 +2377,6 @@
       const totalIncome = income.reduce((s, v) => s + v, 0);
       const totalExpense = expense.reduce((s, v) => s + v, 0);
       console.log('[Report] Monthly line chart data:', { year, totalIncome, totalExpense, incomeArray: income, expenseArray: expense });
-
-      if (lineChartInstance) { lineChartInstance.destroy(); lineChartInstance = null; }
 
       if (totalIncome === 0 && totalExpense === 0) {
         console.warn('[Report] No monthly data for year:', year);
@@ -2266,7 +2396,7 @@
       canvas.width = parentWidth;
       canvas.height = 280;
 
-      lineChartInstance = new Chart(canvas, {
+      const chartInstance = new Chart(canvas, {
         type: 'line',
         data: {
           labels,
@@ -2324,10 +2454,12 @@
           }
         }
       });
+
+      return chartInstance;
     }
 
-    function renderDoughnutChart(breakdown) {
-      const canvas = document.getElementById('categoryDoughnutChart');
+    function renderDoughnutChart(breakdown, canvasId) {
+      const canvas = document.getElementById(canvasId);
       if (!canvas || !breakdown || !breakdown.length) {
         console.warn('[Report] No breakdown data for doughnut chart');
         return;
@@ -2344,11 +2476,10 @@
         return bgColor;
       });
 
-      if (doughnutChartInstance) { doughnutChartInstance.destroy(); doughnutChartInstance = null; }
       // canvas 크기 명시적 설정
       canvas.width = canvas.parentElement.offsetWidth;
       canvas.height = 280;
-      doughnutChartInstance = new Chart(canvas, {
+      const chartInstance = new Chart(canvas, {
         type: 'doughnut',
         data: {
           labels,
@@ -2376,6 +2507,7 @@
         }
       });
       console.log('[Report] Doughnut chart rendered:', labels);
+      return chartInstance;
     }
 
     function renderCategoryDetails(breakdown, periodTxs) {
