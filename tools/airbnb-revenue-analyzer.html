@@ -1244,7 +1244,8 @@
           memo,
           category: null,
           ruleMatched: null,
-          excluded: false
+          excluded: false,
+          inactiveRule: false
         });
       });
 
@@ -1627,18 +1628,33 @@
     function applyClassification() {
       state.transactions.forEach(tx => {
         const haystack = (tx.desc + ' ' + (tx.memo || '')).toLowerCase();
-        const matched = state.rules.find(r =>
+
+        // 1) 활성 규칙 매칭
+        const activeMatch = state.rules.find(r =>
           r.isActive && r.keywords.some(kw => haystack.includes(kw.toLowerCase()))
         );
-
-        if (matched) {
-          tx.category = matched.category;
-          tx.ruleMatched = matched.category;
-        } else {
-          // 매칭된 규칙이 없으면 미분류 (category = null)
-          tx.category = null;
-          tx.ruleMatched = null;
+        if (activeMatch) {
+          tx.category = activeMatch.category;
+          tx.ruleMatched = activeMatch.category;
+          tx.inactiveRule = false;
+          return;
         }
+
+        // 2) 비활성 규칙 매칭
+        const inactiveMatch = state.rules.find(r =>
+          !r.isActive && r.keywords.some(kw => haystack.includes(kw.toLowerCase()))
+        );
+        if (inactiveMatch) {
+          tx.category = inactiveMatch.category;
+          tx.ruleMatched = inactiveMatch.category;
+          tx.inactiveRule = true;
+          return;
+        }
+
+        // 3) 미분류
+        tx.category = null;
+        tx.ruleMatched = null;
+        tx.inactiveRule = false;
       });
     }
 
@@ -1698,7 +1714,8 @@
       }
 
       const filtered = getFilteredTransactions();
-      const classified = filtered.filter(tx => tx.category !== null);
+      const classified = filtered.filter(tx => tx.category !== null && !tx.inactiveRule);
+      const inactive = filtered.filter(tx => tx.category !== null && tx.inactiveRule);
       const unclassified = filtered.filter(tx => tx.category === null);
 
       // 불일치 거래 필터링 (금액 부호 vs 카테고리 타입)
@@ -1764,6 +1781,27 @@
         });
       }
 
+      // 비활성 카테고리 섹션
+      if (inactive.length > 0) {
+        const separatorTr = document.createElement('tr');
+        separatorTr.innerHTML = `
+          <td colspan="7" style="padding:24px 0;text-align:center;background:rgba(107,114,128,.06);border-top:2px solid var(--t3);border-bottom:2px solid var(--t3)">
+            <div style="font-size:14px;font-weight:700;color:var(--t3);letter-spacing:0.5px">
+              🔕 비활성 카테고리 <span style="margin-left:8px">${inactive.length}건</span>
+              <span style="font-size:12px;font-weight:400;margin-left:12px;color:var(--t3)">(통계 미포함)</span>
+            </div>
+          </td>
+        `;
+        frag.appendChild(separatorTr);
+
+        // 비활성 거래 렌더링 (opacity 처리)
+        inactive.forEach((tx, idx) => {
+          const tr = renderTransactionRow(tx, normal.length + mismatched.length + idx);
+          tr.style.opacity = '0.5';
+          frag.appendChild(tr);
+        });
+      }
+
       // 미분류 섹션
       if (unclassified.length > 0) {
         const separatorTr = document.createElement('tr');
@@ -1778,7 +1816,7 @@
 
         // 미분류 거래 렌더링
         unclassified.forEach((tx, idx) => {
-          frag.appendChild(renderTransactionRow(tx, normal.length + mismatched.length + idx));
+          frag.appendChild(renderTransactionRow(tx, normal.length + mismatched.length + inactive.length + idx));
         });
       }
 
@@ -1827,6 +1865,7 @@
       });
 
       classifiedTxs.forEach(tx => {
+        if (tx.inactiveRule) return;  // 비활성 거래 제외
         stats[tx.category].count++;
         stats[tx.category].total += tx.amount;
       });
@@ -2393,7 +2432,7 @@
       wrapper.className = 'report-section';
 
       const yearTxs = filterByPeriod(allTxs, year, null);
-      const classifiedTxs = yearTxs.filter(tx => tx.category !== null);
+      const classifiedTxs = yearTxs.filter(tx => tx.category !== null && !tx.inactiveRule);
       const kpi = calcKpi(classifiedTxs);
       const breakdown = calcCategoryBreakdown(classifiedTxs);
       const monthsWithData = getMonthsWithData(allTxs, year);
@@ -2465,7 +2504,7 @@
       wrapper.className = 'report-section';
 
       const monthTxs = filterByPeriod(allTxs, year, month);
-      const classifiedTxs = monthTxs.filter(tx => tx.category !== null);
+      const classifiedTxs = monthTxs.filter(tx => tx.category !== null && !tx.inactiveRule);
       const kpi = calcKpi(classifiedTxs);
       const breakdown = calcCategoryBreakdown(classifiedTxs);
       const monthName = parseInt(month) + '월';
