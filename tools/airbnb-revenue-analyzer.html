@@ -898,7 +898,13 @@
   <div id="toast"></div>
 
   <script>
-    /* ── DATA MODEL ── */
+    /* ── ① DATA MANAGEMENT: DATA MODEL ── */
+    // 전역 상태 객체
+    // - rawData: 파싱된 원본 거래 데이터
+    // - columnMap: CSV 컬럼 → 필드명 매핑
+    // - transactions: 트랜잭션 객체 배열 (분류됨)
+    // - rules: 분류 규칙 배열
+    // - excludedIds: 제외된 거래 ID 세트
     const state = {
       rawData: [],
       columnMap: {},
@@ -963,7 +969,11 @@
       return COLOR_PALETTE[hash % (COLOR_PALETTE.length - 1)];
     }
 
-    /* ── UI NAVIGATION ── */
+    /* ── ⑩ STEP NAVIGATION: switchStep ── */
+    // 탭 전환 함수
+    // - Step 2 진입 시: 분류 적용 + 테이블 렌더링
+    // - Step 3 진입 시: 제외 테이블 렌더링
+    // - Step 4 진입 시: 리포트 생성 준비
     function switchStep(step) {
       // Step 3 직접 접근 시 방어
       if (step === 2) {
@@ -996,7 +1006,12 @@
       });
     }
 
-    /* ── PARSE DATA ── */
+    /* ── ① DATA MANAGEMENT: PARSE & MAPPING ── */
+    // 데이터 파싱 및 컬럼 매핑
+    // - parseData(): 파일 업로드 및 CSV 파싱
+    // - calculateSimilarity(): 헤더 자동 매칭
+    // - updateMapping(): 매핑 수동 조정
+    // - confirmMapping(): 매핑 확정 및 거래 생성
     function parseData() {
       const raw = document.getElementById('rawInput').value.trim();
       if (!raw) {
@@ -1163,7 +1178,11 @@
       }
     }
 
-    /* ── DATE NORMALIZATION ── */
+    /* ── ① DATA MANAGEMENT: TRANSACTION BUILD & ⑩ STEP NAVIGATION ── */
+    // 날짜 정규화 및 트랜잭션 생성
+    // - normalizeDate(): 다양한 날짜 형식 → YYYY.MM.DD 변환
+    // - buildTransactions(): 파싱된 데이터 → state.transactions 생성
+    // - Step 1 완료 핸들러들
     function normalizeDate(dateStr) {
       // 다양한 날짜 형식을 YYYY-MM-DD로 정규화
       // 2025.10.28 15:55:32 → 2025-10-28
@@ -1324,7 +1343,13 @@
       toast('초기화 완료');
     }
 
-    /* ── RULE MANAGEMENT ── */
+    /* ── ② RULES MANAGEMENT ── */
+    // 분류 규칙 관리
+    // - initRules(): 규칙 초기화 (기본값 또는 로컬스토리지)
+    // - renderRules(): 규칙 목록 렌더링
+    // - openRuleModal(), saveRule(), deleteRule(): CRUD
+    // - toggleCategory(): 규칙 활성/비활성 (NEW: 2026-04-14 비활성 규칙 분류)
+    // - export/importRulesAsText(): 마크다운 형식 내보내기/불러오기
     let editingCategory = null;
 
     function initRules() {
@@ -1624,7 +1649,11 @@
       }
     }
 
-    /* ── CLASSIFICATION APPLY ── */
+    /* ── ③ CLASSIFICATION APPLY ── */
+    // 거래 분류 적용 (규칙 기반 자동 분류)
+    // 1) 활성 규칙으로 키워드 매칭
+    // 2) 비활성 규칙으로 매칭 (NEW: 2026-04-14, inactiveRule 플래그)
+    // 3) 미분류 처리
     function applyClassification() {
       state.transactions.forEach(tx => {
         const haystack = (tx.desc + ' ' + (tx.memo || '')).toLowerCase();
@@ -1658,7 +1687,22 @@
       });
     }
 
-    /* ── FILTER FUNCTIONS ── */
+    /* ── ③ CLASSIFICATION & ④ CLASSIFICATION TABLE & ⑤ CATEGORY STATS ── */
+    // 필터링, 분류 테이블 렌더링, 통계 관리
+    // [필터링]
+    // - getFilteredTransactions(): 검색/카테고리/모드 필터 적용
+    // - setFilterQuery(), setFilterCategory(), setFilterMode(): 필터 값 설정
+    // [분류 테이블 렌더링]
+    // - renderClassificationTable(): 메인 테이블 렌더링 (정상 + 불일치 + 비활성 + 미분류)
+    // - renderTransactionRow(): 거래 행 렌더링
+    // [카테고리 통계]
+    // - renderCategoryStats(): 카테고리별 KPI 카드 렌더링 (비활성 제외)
+    // [수동 분류]
+    // - changeTxCategory(): 거래 카테고리 수동 변경
+    // [Step 2-3 완료 핸들러]
+    // - completeStep2(), completeStep3(): 단계 완료
+    // [모달/예외 처리]
+    // - showMismatchModal(), excludeMismatched(), ignoreMismatch(): 부호 불일치 처리
     function getFilteredTransactions() {
       return state.transactions.filter(tx => {
         if (filterState.query) {
@@ -2135,7 +2179,13 @@
       proceedToExclude();
     }
 
-    /* ── DATA REVIEW (Step 4) ── */
+    /* ── ⑧ DATA EXCLUSION MANAGEMENT ── */
+    // 거래 제외 관리 (파싱 오류, 부호 불일치 등)
+    // - toggleExclude(): 개별 거래 제외/복구
+    // - updateExcludeCount(): 제외 건수 업데이트
+    // - renderExcludeTable(): 제외 대상 테이블 렌더링
+    // - renderExcludedList(): 제외된 거래 목록 렌더링
+    // - toggleExcludedSection(): 제외 섹션 표시/숨김
     function toggleExclude(txId) {
       const tx = state.transactions.find(t => t.id === txId);
       if (!tx) return;
@@ -2231,7 +2281,14 @@
       renderReport();  // renderReport() 내에서 renderPeriodBar() 호출됨
     }
 
-    /* ── REPORT (Step 5) ── */
+    /* ── ⑥ REPORT GENERATION (Step 4) ── */
+    // 리포트 생성 및 KPI 계산
+    // - getActiveTransactions(): 제외되지 않은 거래 필터링
+    // - calcKpi(): KPI 계산 (비활성 제외, NEW: 2026-04-14)
+    // - calcCategoryBreakdown(): 카테고리별 수익/지출 집계 (비활성 제외)
+    // - getYears(), getMonthsWithData(): 연월 추출
+    // - filterByPeriod(): 연월별 거래 필터링
+    // - buildMonthlyChartData(): 월별 차트 데이터 생성
     let reportChartInstances = [];  // 모든 차트 인스턴스 관리
 
     function getActiveTransactions() {
@@ -2304,6 +2361,25 @@
       return { labels, income, expense };
     }
 
+    /* ── ⑥ REPORT GENERATION & ⑦ CHART RENDERING & ⑨ DATA EXPORT & ⑪ UTILITIES & ⑫ OTHER UI ── */
+    // 리포트 헬퍼 함수들
+    // [리포트]
+    // - renderReport(): 리포트 진입점
+    // - buildYearSection(), buildMonthSection(): 연월 섹션 빌드 (비활성 제외, NEW: 2026-04-14)
+    // - renderPeriodBar(), scrollToSection(), initScrollSpy(): 네비게이션
+    // - renderKpiCards(), renderSummaryBar(), renderUnclassifiedBanner(): KPI 렌더링
+    // - renderInsights(), renderCategoryDetails(), toggleCategoryDetail(): 인사이트 & 상세
+    // [차트]
+    // - renderMonthlyLineChart(): 월별 추이 라인차트
+    // - renderDoughnutChart(): 카테고리별 비율 도넛차트
+    // [내보내기]
+    // - copyReportText(): 리포트 마크다운 복사
+    // - exportReviewData(): 모든 데이터 JSON 내보내기
+    // [유틸리티]
+    // - esc(): HTML 이스케이프
+    // - fmtN(): 숫자 포매팅 (쉼표)
+    // - toast(): 토스트 메시지
+    // - showMsg(), showWarn(): 메시지 박스
     /* ── NEW REPORT HELPER FUNCTIONS ── */
     function getMonthsWithData(txs, year) {
       const months = new Set(filterByPeriod(txs, year, null).map(tx => tx.date.slice(5, 7)));
