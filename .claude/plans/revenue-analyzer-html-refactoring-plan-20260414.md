@@ -32,41 +32,42 @@
 
 ## 📋 리팩토링 순서
 
-### Phase 1: 분석 및 계획
-- [ ] 파일 구조 맵핑 (라인 수, 섹션별 역할)
-- [ ] 함수 목록 추출
-- [ ] 의존성 분석
+### Phase 1: 분석 및 계획 ✅
+- [x] 파일 구조 맵핑 (라인 수, 섹션별 역할)
+- [x] 함수 목록 추출
+- [x] 의존성 분석
 
-### Phase 2: JavaScript 함수 그룹화
-**함수 그룹 (현재 상태 파악 후 정의)**
-- `데이터 관리`: buildTransactions, applyClassification, calcKpi 등
-- `규칙 관리`: initRules, renderRules, addRule, deleteRule 등
-- `렌더링`: renderClassificationTable, renderCategoryStats, renderReport 등
-- `유틸리티`: esc(), fmtN(), toast(), filterByPeriod() 등
-- `이벤트 핸들러`: changeTxCategory, setFilterQuery, toggleUnclassified 등
+### Phase 2: JavaScript 함수 그룹화 ✅
+**Phase 2-A: 섹션 주석 강화** ✅
+- [x] 12개 섹션별 역할 명확화
+- [x] 함수 호출 맵 생성
 
-**진행 방식**
-- 기존 파일 내에서 주석 블록으로 섹션 강화
-- 함수 호출 순서 명확화
-- 관련 상수(DEFAULTS, CATEGORIES 등) 그룹화
+**Phase 2-B: JS 파일 분리** ✅
+- [x] Step 1: 유틸리티 분리 (utils.js)
+- [x] Step 2: 데이터 계산 분리 (data-calculator.js)
+- [x] Step 3: 차트 렌더링 분리 (chart-renderer.js)
+- [x] Step 4: 규칙 관리 분리 (rules-manager.js)
+- [x] Step 5: 리포트 생성 분리 (report-generator.js)
 
-### Phase 3: JavaScript 파일 분리 검토
-**부분 분리 옵션 (필요시)**
+### Phase 3: JavaScript 파일 분리 ✅
+**실제 생성된 파일 구조**
 ```
-airbnb-revenue-analyzer.html    (main + rendering)
-├── js/data-handler.js          (상태 관리, 계산)
-├── js/rules-manager.js         (규칙 관리)
-└── js/report-generator.js      (리포트 생성)
+airbnb-revenue-analyzer.html    (2,037줄 - 32% 감소)
+├── js/utils.js                 (42줄, 공용 유틸리티)
+├── js/data-calculator.js       (79줄, 데이터 계산)
+├── js/chart-renderer.js        (151줄, 차트 렌더링)
+├── js/rules-manager.js         (320줄, 규칙 관리)
+└── js/report-generator.js      (538줄, 리포트 생성)
 ```
-- 각 모듈 간 `state` 객체로 통신
-- 초기 로드 순서: data → rules → rendering → report
+- [x] 각 모듈 간 `state` 객체로 통신
+- [x] 스크립트 로드 순서 최적화
 
-### Phase 4: HTML 마크업 정리 (필요시)
+### Phase 4: HTML 마크업 정리 (예정)
 - [ ] 인라인 스타일 → CSS 클래스 전환
 - [ ] 중첩 구조 단순화
 - [ ] ID/class 명명 규칙 통일
 
-### Phase 5: 기능 검증 및 테스트
+### Phase 5: 기능 검증 및 테스트 (예정)
 - [ ] 거래 데이터 임포트 동작 확인
 - [ ] 규칙 추가/수정/삭제 확인
 - [ ] 분류 적용 및 통계 계산 확인
@@ -163,25 +164,28 @@ airbnb-revenue-analyzer.html    (main + rendering)
   - [x] 함수 목록 추출
   - [x] 의존성 분석
   
-- [ ] **Phase 2**: JavaScript 함수 그룹화
-  - [ ] 데이터 관리 함수 그룹화
-  - [ ] 규칙 관리 함수 그룹화
-  - [ ] 렌더링 함수 그룹화
-  - [ ] 유틸리티 함수 정리
-  - [ ] 이벤트 핸들러 그룹화
+- [x] **Phase 2**: JavaScript 함수 그룹화 ✅ 완료 (Phase 2-A, 2-B)
+  - [x] 섹션 주석 강화 (Phase 2-A)
+  - [x] JS 파일 분리 5단계 (Phase 2-B)
+    - [x] Step 1: Utils 분리
+    - [x] Step 2: Data-Calculator 분리
+    - [x] Step 3: Chart-Renderer 분리
+    - [x] Step 4: Rules-Manager 분리
+    - [x] Step 5: Report-Generator 분리
 
-- [ ] **Phase 3**: JavaScript 파일 분리 검토
-  - [ ] js/data-handler.js 생성 (필요시)
-  - [ ] js/rules-manager.js 생성 (필요시)
-  - [ ] js/report-generator.js 생성 (필요시)
-  - [ ] 모듈 간 통신 테스트
+- [x] **Phase 3**: JavaScript 파일 분리 ✅ 완료
+  - [x] js/utils.js 생성 (42줄, 5함수)
+  - [x] js/data-calculator.js 생성 (79줄, 6함수)
+  - [x] js/chart-renderer.js 생성 (151줄, 2함수)
+  - [x] js/rules-manager.js 생성 (320줄, 14함수)
+  - [x] js/report-generator.js 생성 (538줄, 17함수)
 
-- [ ] **Phase 4**: HTML 마크업 정리
+- [ ] **Phase 4**: HTML 마크업 정리 (예정)
   - [ ] 인라인 스타일 정리
   - [ ] 중첩 구조 단순화
   - [ ] ID/class 명명 규칙 통일
 
-- [ ] **Phase 5**: 기능 검증 및 테스트
+- [ ] **Phase 5**: 기능 검증 및 테스트 (예정)
   - [ ] 데이터 임포트 테스트
   - [ ] 규칙 관리 테스트
   - [ ] 분류 적용 테스트
