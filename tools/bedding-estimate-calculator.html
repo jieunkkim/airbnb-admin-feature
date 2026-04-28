@@ -255,7 +255,7 @@ function pushRow(cfg){
   const price = cfg.bedSize ? (cfg.bedSize==='Q' ? cfg.priceQ : cfg.priceSS) : (cfg.price||0);
   const item = { id, key:cfg.key, name:cfg.name, type:cfg.type, bedSize:cfg.bedSize||null,
     multi:cfg.multi, sizeField:cfg.sizeField||null, size:sizeStr, price:price, originalPrice:price,
-    note:cfg.note||'', custom:false };
+    note:cfg.note||'', custom:false, qtyOverride:0 };
   items.push(item);
   renderRow(item);
 }
@@ -305,9 +305,7 @@ function renderRow(item){
     <td>${c
       ? `<input class="tbl-input center" type="text" value="" placeholder="사이즈" style="width:90px" onchange="upd(${item.id},'size',this.value)">`
       : `<span style="font-size:13px;color:var(--t2)">${esc(item.size)}</span>`}</td>
-    <td class="qty-cell" id="qty_${item.id}">${c
-      ? `<input class="tbl-input num" type="number" value="0" min="0" style="width:60px" oninput="upd(${item.id},'customQty',+this.value);recalc()">`
-      : '0'}</td>
+    <td class="qty-cell" id="qty_${item.id}"><input class="tbl-input num" type="text" value="0" style="width:60px" oninput="qtyIn(this,${item.id})" onblur="qtyOut(this,${item.id})"></td>
     <td><input class="tbl-input num" type="text" value="${fmtN(item.price)}" style="width:100px"
       oninput="priceIn(this,${item.id})" onblur="priceOut(this,${item.id})"></td>
     <td class="amt-cell" id="amt_${item.id}">0</td>
@@ -323,6 +321,8 @@ function fmtN(n){return n?(+n).toLocaleString('ko-KR'):'0'}
 function upd(id,k,v){const it=items.find(i=>i.id===id);if(it)it[k]=v}
 function priceIn(el,id){const r=el.value.replace(/,/g,'').replace(/[^0-9]/g,'');upd(id,'price',+r);upd(id,'originalPrice',+r);recalc()}
 function priceOut(el,id){const r=el.value.replace(/,/g,'').replace(/[^0-9]/g,'');el.value=fmtN(+r);upd(id,'price',+r);upd(id,'originalPrice',+r);recalc()}
+function qtyIn(el,id){const r=el.value.replace(/,/g,'').replace(/[^0-9]/g,'');upd(id,'qtyOverride',+r);recalc()}
+function qtyOut(el,id){const r=el.value.replace(/,/g,'').replace(/[^0-9]/g,'');el.value=fmtN(+r);upd(id,'qtyOverride',+r);recalc()}
 function delRow(id){items=items.filter(i=>i.id!==id);document.getElementById('row_'+id)?.remove();renumber();recalc()}
 
 function renumber(){
@@ -370,20 +370,22 @@ function recalc(){
     const tr=document.getElementById('row_'+item.id);
     if(!tr)return;
 
-    if(item.type==='bed'){
+    if(item.qtyOverride>0){
+      qty=item.qtyOverride;
+    } else if(item.type==='bed'){
       const beds=item.bedSize==='Q'?bQ:bSS;
       qty=beds*item.multi;
       tr.classList.toggle('hidden-row', item.bedSize==='SS'&&bSS===0);
-      if(!item.custom){const el=document.getElementById('qty_'+item.id);if(el)el.textContent=fmtN(qty)}
     } else if(item.type==='person'){
       qty=mp*item.multi;
       tr.classList.remove('hidden-row');
-      if(!item.custom){const el=document.getElementById('qty_'+item.id);if(el)el.textContent=fmtN(qty)}
     } else {
       qty=item.customQty||0;
       tr.classList.remove('hidden-row');
     }
 
+    const qtyEl=document.getElementById('qty_'+item.id);
+    if(qtyEl&&qtyEl.querySelector('input')){qtyEl.querySelector('input').value=fmtN(qty)}
     const amt=qty*(item.price||0);
     if(!tr.classList.contains('hidden-row')){subtotal+=amt;totalQty+=qty}
     const ae=document.getElementById('amt_'+item.id);if(ae)ae.textContent=fmtN(amt);
@@ -403,6 +405,7 @@ function resetAll(){
   personOverride=false;
   document.getElementById('override_badge').style.display='none';
   document.getElementById('max_person').value=calcPerson();
+  items.forEach(item=>item.qtyOverride=0);
   buildItems();recalc();toast('↺ 초기화 완료');
 }
 
@@ -424,7 +427,8 @@ function copyMarkdown(){
     if(!tr||tr.classList.contains('hidden-row'))return;
     n++;
     let qty=0;
-    if(item.type==='bed')qty=(item.bedSize==='Q'?bQ:bSS)*item.multi;
+    if(item.qtyOverride>0)qty=item.qtyOverride;
+    else if(item.type==='bed')qty=(item.bedSize==='Q'?bQ:bSS)*item.multi;
     else if(item.type==='person')qty=mp*item.multi;
     else qty=item.customQty||0;
     const amt=qty*(item.price||0);
