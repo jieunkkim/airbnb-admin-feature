@@ -897,8 +897,29 @@
   </div>
   <div id="toast"></div>
 
+  <!-- 공용 유틸리티 로드 (모든 도구에서 사용 가능) -->
+  <script src="js/utils.js"></script>
+
+  <!-- 데이터 계산/필터링 로드 -->
+  <script src="js/data-calculator.js"></script>
+
+  <!-- 차트 렌더링 로드 -->
+  <script src="js/chart-renderer.js"></script>
+
+  <!-- 규칙 관리 로드 -->
+  <script src="js/rules-manager.js"></script>
+
+  <!-- 리포트 생성 및 내보내기 로드 -->
+  <script src="js/report-generator.js"></script>
+
   <script>
-    /* ── DATA MODEL ── */
+    /* ── ① DATA MANAGEMENT: DATA MODEL ── */
+    // 전역 상태 객체
+    // - rawData: 파싱된 원본 거래 데이터
+    // - columnMap: CSV 컬럼 → 필드명 매핑
+    // - transactions: 트랜잭션 객체 배열 (분류됨)
+    // - rules: 분류 규칙 배열
+    // - excludedIds: 제외된 거래 ID 세트
     const state = {
       rawData: [],
       columnMap: {},
@@ -963,7 +984,11 @@
       return COLOR_PALETTE[hash % (COLOR_PALETTE.length - 1)];
     }
 
-    /* ── UI NAVIGATION ── */
+    /* ── ⑩ STEP NAVIGATION: switchStep ── */
+    // 탭 전환 함수
+    // - Step 2 진입 시: 분류 적용 + 테이블 렌더링
+    // - Step 3 진입 시: 제외 테이블 렌더링
+    // - Step 4 진입 시: 리포트 생성 준비
     function switchStep(step) {
       // Step 3 직접 접근 시 방어
       if (step === 2) {
@@ -996,7 +1021,12 @@
       });
     }
 
-    /* ── PARSE DATA ── */
+    /* ── ① DATA MANAGEMENT: PARSE & MAPPING ── */
+    // 데이터 파싱 및 컬럼 매핑
+    // - parseData(): 파일 업로드 및 CSV 파싱
+    // - calculateSimilarity(): 헤더 자동 매칭
+    // - updateMapping(): 매핑 수동 조정
+    // - confirmMapping(): 매핑 확정 및 거래 생성
     function parseData() {
       const raw = document.getElementById('rawInput').value.trim();
       if (!raw) {
@@ -1163,7 +1193,11 @@
       }
     }
 
-    /* ── DATE NORMALIZATION ── */
+    /* ── ① DATA MANAGEMENT: TRANSACTION BUILD & ⑩ STEP NAVIGATION ── */
+    // 날짜 정규화 및 트랜잭션 생성
+    // - normalizeDate(): 다양한 날짜 형식 → YYYY.MM.DD 변환
+    // - buildTransactions(): 파싱된 데이터 → state.transactions 생성
+    // - Step 1 완료 핸들러들
     function normalizeDate(dateStr) {
       // 다양한 날짜 형식을 YYYY-MM-DD로 정규화
       // 2025.10.28 15:55:32 → 2025-10-28
@@ -1324,307 +1358,19 @@
       toast('초기화 완료');
     }
 
-    /* ── RULE MANAGEMENT ── */
+    /* ── ② RULES MANAGEMENT ── */
+    // 규칙 관리 함수들은 js/rules-manager.js로 분리됨
+    // - initRules(), renderRules(), openRuleModal(), closeRuleModal()
+    // - saveRule(), deleteRule(), toggleCategory()
+    // - exportRulesAsText(), importRulesFromText(), resetRules()
+    // - updateCategoryInfo(), selectColor(), moOut()
     let editingCategory = null;
 
-    function initRules() {
-      state.rules = JSON.parse(JSON.stringify(DEFAULT_RULES));
-      state.rules.forEach(r => r.isActive = true);
-      renderRules();
-    }
-
-    function renderRules() {
-      const body = document.getElementById('rulesBody');
-      body.innerHTML = state.rules.map((r, idx) => {
-        const color = getCategoryColor(r.category);
-        const typeText = r.type === 'income' ? '<span style="color:var(--gr);font-weight:700">수익</span>' : '<span style="color:var(--rd);font-weight:700">지출</span>';
-        return `
-        <tr class="${!r.isActive ? 'disabled-row' : ''}">
-          <td style="text-align:center;padding:8px">
-            <input type="checkbox" ${r.isActive ? 'checked' : ''} onchange="toggleCategory('${r.category}')"
-                   style="width:16px;height:16px;accent-color:var(--ac);cursor:pointer">
-          </td>
-          <td style="padding:8px"><span class="cat-badge" style="background:${color.bg};color:${color.fg}">${r.category}</span></td>
-          <td style="padding:8px;text-align:center">${typeText}</td>
-          <td style="padding:8px;text-align:left;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-            ${r.keywords.map(k => `<span style="display:inline-block;background:var(--s2);padding:4px 8px;border-radius:4px;margin-right:6px;font-size:12px">${esc(k)}</span>`).join('')}
-          </td>
-          <td style="padding:8px;text-align:center;font-size:13px">
-            <button class="del-btn" onclick="openRuleModal('${r.category}')" title="수정" style="font-size:13px">✎</button>
-            ${!r.isDefault ? `<button class="del-btn" onclick="deleteRule('${r.category}')" title="삭제">✕</button>` : ''}
-          </td>
-        </tr>
-        `;
-      }).join('');
-    }
-
-    function openRuleModal(category) {
-      const rule = category ? state.rules.find(r => r.category === category) : null;
-      editingCategory = category || null;
-
-      document.getElementById('mo_title').textContent = rule ? `${rule.category} 수정` : '규칙 추가';
-      document.getElementById('mo_warn').style.display = 'none';
-      document.getElementById('mo_warn').textContent = '';
-
-      const catInput = document.getElementById('mo_category');
-      const keywordsInput = document.getElementById('mo_keywords');
-
-      if (rule) {
-        // 편집 모드
-        catInput.value = rule.category;
-        catInput.readOnly = true;
-        catInput.style.backgroundColor = 'var(--s2)';
-        keywordsInput.value = rule.keywords.join(', ');
-        keywordsInput.readOnly = false;
-        keywordsInput.style.backgroundColor = '';
-        keywordsInput.placeholder = '각 줄에 하나씩 또는 쉼표로 구분';
-        document.getElementById('mo_info').textContent = '편집 모드에서는 카테고리를 변경할 수 없습니다';
-      } else {
-        // 추가 모드
-        catInput.value = '';
-        catInput.readOnly = false;
-        catInput.style.backgroundColor = '';
-        keywordsInput.value = '';
-        keywordsInput.readOnly = false;
-        keywordsInput.style.backgroundColor = '';
-        keywordsInput.placeholder = '각 줄에 하나씩 또는 쉼표로 구분';
-        document.getElementById('mo_info').textContent = '';
-      }
-
-      // 색상 팔레트 초기화
-      const colorsContainer = document.getElementById('mo_colors');
-      colorsContainer.innerHTML = COLOR_PALETTE.map((color, idx) => `
-        <div class="color-swatch ${rule && rule.colorIdx === idx ? 'selected' : ''}"
-             data-idx="${idx}"
-             style="width:32px;height:32px;border-radius:4px;background:${color.bg};border:2px solid ${rule && rule.colorIdx === idx ? color.fg : 'transparent'};cursor:pointer;transition:all .2s"
-             onclick="selectColor(${idx})"
-             title="${color.name}"></div>
-      `).join('');
-
-      // 기본값 설정 (새 규칙은 첫 번째 색상, 첫 번째 색상 선택)
-      if (!rule && COLOR_PALETTE.length > 0) {
-        const firstSwatch = colorsContainer.querySelector('[data-idx="0"]');
-        if (firstSwatch) {
-          firstSwatch.classList.add('selected');
-          firstSwatch.style.border = `2px solid ${COLOR_PALETTE[0].fg}`;
-        }
-      }
-
-      // 유형 라디오 버튼 초기화
-      const selectedType = rule ? rule.type : 'expense';
-      document.querySelectorAll('input[name="mo_type"]').forEach(radio => {
-        radio.checked = radio.value === selectedType;
-      });
-
-      document.getElementById('mo_rule').classList.add('open');
-      catInput.focus();
-    }
-
-    function selectColor(idx) {
-      // 모든 스와치에서 selected 클래스 제거
-      document.querySelectorAll('.color-swatch').forEach(swatch => {
-        swatch.classList.remove('selected');
-        const swatchIdx = parseInt(swatch.dataset.idx);
-        swatch.style.border = `2px solid transparent`;
-      });
-      // 선택된 스와치에 selected 클래스 추가 및 테두리 표시
-      const selectedSwatch = document.querySelector(`.color-swatch[data-idx="${idx}"]`);
-      if (selectedSwatch) {
-        selectedSwatch.classList.add('selected');
-        selectedSwatch.style.border = `2px solid ${COLOR_PALETTE[idx].fg}`;
-      }
-    }
-
-    function closeRuleModal() {
-      document.getElementById('mo_rule').classList.remove('open');
-      editingCategory = null;
-    }
-
-    function moOut(e) {
-      if (e.target === document.getElementById('mo_rule')) closeRuleModal();
-    }
-
-    function updateCategoryInfo() {
-      const cat = document.getElementById('mo_category').value;
-      const existing = state.rules.find(r => r.category === cat && !editingCategory);
-      if (existing) {
-        document.getElementById('mo_info').textContent = `현재 키워드: ${existing.keywords.join(', ')}`;
-      } else {
-        document.getElementById('mo_info').textContent = '';
-      }
-    }
-
-    function saveRule() {
-      const category = document.getElementById('mo_category').value.trim();
-      const keywordsText = document.getElementById('mo_keywords').value.trim();
-
-      if (!category) {
-        showWarn('카테고리명을 입력하세요');
-        return;
-      }
-
-      if (!keywordsText) {
-        showWarn('최소 하나의 키워드를 입력하세요');
-        return;
-      }
-
-      // 키워드 정규화 (쉼표 또는 줄바꿈으로 구분)
-      const keywords = keywordsText
-        .split(/[,\n]+/)
-        .map(k => k.trim().toLowerCase())
-        .filter(k => k.length > 0);
-
-      if (keywords.length === 0) {
-        showWarn('유효한 키워드가 없습니다');
-        return;
-      }
-
-      // 중복 키워드 체크 (다른 카테고리)
-      for (const kw of keywords) {
-        const dup = state.rules.find(r => r.category !== category && r.keywords.includes(kw) && !r.isFallback);
-        if (dup) {
-          showWarn(`"${kw}"은(는) 이미 "${dup.category}"에 포함되어 있습니다`);
-          return;
-        }
-      }
-
-      // 중복 카테고리 체크 (편집 모드가 아닐 때)
-      if (!editingCategory) {
-        const existingCategory = state.rules.find(r => r.category === category);
-        if (existingCategory) {
-          showWarn(`"${category}" 카테고리가 이미 존재합니다`);
-          return;
-        }
-      }
-
-      // 색상과 유형 추출
-      const colorIdx = parseInt(document.querySelector('.color-swatch.selected')?.dataset.idx ?? 0);
-      const type = document.querySelector('input[name="mo_type"]:checked')?.value || 'expense';
-
-      if (editingCategory) {
-        // 수정
-        const rule = state.rules.find(r => r.category === editingCategory);
-        rule.keywords = keywords;
-        rule.colorIdx = colorIdx;
-        rule.type = type;
-      } else {
-        // 추가
-        state.rules.push({
-          category,
-          keywords,
-          isActive: true,
-          isDefault: false,
-          colorIdx,
-          type
-        });
-      }
-
-      renderRules();
-      closeRuleModal();
-      toast(editingCategory ? '규칙이 수정되었습니다' : '규칙이 추가되었습니다');
-    }
-
-    function toggleCategory(category) {
-      const rule = state.rules.find(r => r.category === category);
-      if (rule) {
-        rule.isActive = !rule.isActive;
-        renderRules();
-      }
-    }
-
-    function deleteRule(category) {
-      if (confirm(`"${category}" 규칙을 삭제하시겠습니까?`)) {
-        state.rules = state.rules.filter(r => r.category !== category);
-        renderRules();
-        toast('규칙이 삭제되었습니다');
-      }
-    }
-
-    function openImportRulesModal() {
-      const modal = document.getElementById('mo_importRules');
-      if (modal) {
-        modal.classList.add('open');
-        const textarea = document.getElementById('ruleInputText');
-        if (textarea) {
-          textarea.value = '';
-          textarea.focus();
-        }
-      }
-    }
-
-    function closeImportRulesModal() {
-      const modal = document.getElementById('mo_importRules');
-      if (modal) {
-        modal.classList.remove('open');
-      }
-    }
-
-    function exportRulesAsText() {
-      if (!state.rules || state.rules.length === 0) {
-        toast('내보낼 규칙이 없습니다');
-        return;
-      }
-      const text = state.rules
-        .map(r => `${r.category} | ${r.keywords.join(',')} | ${r.type}`)
-        .join('\n');
-      navigator.clipboard.writeText(text)
-        .then(() => toast(`${state.rules.length}개 규칙이 복사되었습니다 (규칙 불러오기에 붙여넣기 가능)`))
-        .catch(() => toast('복사 실패 - 브라우저 권한을 확인하세요'));
-    }
-
-    function importRulesFromText() {
-      const text = document.getElementById('ruleInputText').value.trim();
-      if (!text) {
-        toast('규칙 데이터를 입력해주세요');
-        return;
-      }
-
-      try {
-        const rules = [];
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-
-        lines.forEach((line, idx) => {
-          const parts = line.split('|').map(p => p.trim());
-          if (parts.length !== 3) {
-            throw new Error(`${idx + 1}번 줄: "카테고리 | 키워드 | type" 형식이어야 합니다`);
-          }
-
-          const [category, keywordsStr, type] = parts;
-
-          if (!category) throw new Error(`${idx + 1}번 줄: 카테고리가 필요합니다`);
-          if (!keywordsStr) throw new Error(`${idx + 1}번 줄: 키워드가 필요합니다`);
-          if (!['income', 'expense'].includes(type)) throw new Error(`${idx + 1}번 줄: type은 'income' 또는 'expense'이어야 합니다`);
-
-          const keywords = keywordsStr.split(',').map(k => k.trim()).filter(k => k);
-          if (keywords.length === 0) throw new Error(`${idx + 1}번 줄: 최소 1개 이상의 키워드가 필요합니다`);
-
-          rules.push({
-            category,
-            keywords,
-            type,
-            colorIdx: Math.floor(Math.random() * COLOR_PALETTE.length),
-            isActive: true
-          });
-        });
-
-        state.rules = rules;
-        renderRules();
-        closeImportRulesModal();
-        toast(`${rules.length}개 규칙이 불러워졌습니다`);
-      } catch (err) {
-        toast('규칙 파싱 실패: ' + err.message);
-      }
-    }
-
-    function resetRules() {
-      if (confirm('기본 규칙으로 초기화하시겠습니까? 사용자 규칙은 삭제됩니다.')) {
-        initRules();
-        renderRules();
-        toast('기본 규칙으로 초기화되었습니다');
-      }
-    }
-
-    /* ── CLASSIFICATION APPLY ── */
+    /* ── ③ CLASSIFICATION APPLY ── */
+    // 거래 분류 적용 (규칙 기반 자동 분류)
+    // 1) 활성 규칙으로 키워드 매칭
+    // 2) 비활성 규칙으로 매칭 (NEW: 2026-04-14, inactiveRule 플래그)
+    // 3) 미분류 처리
     function applyClassification() {
       state.transactions.forEach(tx => {
         const haystack = (tx.desc + ' ' + (tx.memo || '')).toLowerCase();
@@ -1658,7 +1404,22 @@
       });
     }
 
-    /* ── FILTER FUNCTIONS ── */
+    /* ── ③ CLASSIFICATION & ④ CLASSIFICATION TABLE & ⑤ CATEGORY STATS ── */
+    // 필터링, 분류 테이블 렌더링, 통계 관리
+    // [필터링]
+    // - getFilteredTransactions(): 검색/카테고리/모드 필터 적용
+    // - setFilterQuery(), setFilterCategory(), setFilterMode(): 필터 값 설정
+    // [분류 테이블 렌더링]
+    // - renderClassificationTable(): 메인 테이블 렌더링 (정상 + 불일치 + 비활성 + 미분류)
+    // - renderTransactionRow(): 거래 행 렌더링
+    // [카테고리 통계]
+    // - renderCategoryStats(): 카테고리별 KPI 카드 렌더링 (비활성 제외)
+    // [수동 분류]
+    // - changeTxCategory(): 거래 카테고리 수동 변경
+    // [Step 2-3 완료 핸들러]
+    // - completeStep2(), completeStep3(): 단계 완료
+    // [모달/예외 처리]
+    // - showMismatchModal(), excludeMismatched(), ignoreMismatch(): 부호 불일치 처리
     function getFilteredTransactions() {
       return state.transactions.filter(tx => {
         if (filterState.query) {
@@ -2135,7 +1896,13 @@
       proceedToExclude();
     }
 
-    /* ── DATA REVIEW (Step 4) ── */
+    /* ── ⑧ DATA EXCLUSION MANAGEMENT ── */
+    // 거래 제외 관리 (파싱 오류, 부호 불일치 등)
+    // - toggleExclude(): 개별 거래 제외/복구
+    // - updateExcludeCount(): 제외 건수 업데이트
+    // - renderExcludeTable(): 제외 대상 테이블 렌더링
+    // - renderExcludedList(): 제외된 거래 목록 렌더링
+    // - toggleExcludedSection(): 제외 섹션 표시/숨김
     function toggleExclude(txId) {
       const tx = state.transactions.find(t => t.id === txId);
       if (!tx) return;
@@ -2226,773 +1993,17 @@
       if (icon) icon.textContent = isOpen ? '▶' : '▼';
     }
 
-    function completeStep4() {
-      switchStep(4);
-      renderReport();  // renderReport() 내에서 renderPeriodBar() 호출됨
-    }
-
-    /* ── REPORT (Step 5) ── */
-    let reportChartInstances = [];  // 모든 차트 인스턴스 관리
-
-    function getActiveTransactions() {
-      return state.transactions.filter(tx => !tx.excluded);
-    }
-
-    function calcKpi(txs) {
-      let income = 0, expense = 0;
-      txs.forEach(tx => {
-        // 카테고리 규칙의 type으로 판단
-        const rule = state.rules.find(r => r.category === tx.category);
-        const isIncome = rule && rule.type === 'income';
-
-        const amount = Math.abs(tx.amount);
-        if (isIncome) {
-          income += amount;
-        } else {
-          expense += amount;
-        }
-      });
-      return { income, expense, net: income - expense };
-    }
-
-    function calcCategoryBreakdown(txs) {
-      const map = {};
-      CATEGORIES.forEach(c => { map[c] = { total: 0, count: 0 }; });
-      // 분류된 거래만 처리 (미분류는 제외)
-      txs.filter(tx => tx.category !== null).forEach(tx => {
-        if (map[tx.category]) {
-          map[tx.category].total += tx.amount;
-          map[tx.category].count++;
-        }
-      });
-      const grandTotal = Object.values(map).reduce((s, v) => s + Math.abs(v.total), 0);
-      return CATEGORIES.map(c => ({
-        category: c,
-        total: map[c].total,
-        count: map[c].count,
-        pct: grandTotal ? Math.round(Math.abs(map[c].total) / grandTotal * 100) : 0
-      })).filter(r => r.count > 0);
-    }
-
-    function getYears(txs) {
-      // tx.date는 이미 YYYY-MM-DD 형식으로 정규화됨 (buildTransactions에서)
-      const years = new Set(txs.map(tx => tx.date.split('-')[0]));
-      return [...years].sort();
-    }
-
-    function filterByPeriod(txs, year, month) {
-      // tx.date는 이미 YYYY-MM-DD 형식으로 정규화됨 (buildTransactions에서)
-      return txs.filter(tx => {
-        const [y, m] = tx.date.split('-');
-        if (y !== year) return false;
-        if (month && m !== month) return false;
-        return true;
-      });
-    }
-
-    function buildMonthlyChartData(txs, year) {
-      const months = ['01','02','03','04','05','06','07','08','09','10','11','12'];
-      const labels = months.map(m => `${parseInt(m)}월`);
-      const income  = months.map(m => {
-        const filtered = filterByPeriod(txs, year, m);
-        return filtered.filter(tx => tx.amount > 0).reduce((s, tx) => s + tx.amount, 0);
-      });
-      const expense = months.map(m => {
-        const filtered = filterByPeriod(txs, year, m);
-        return filtered.filter(tx => tx.amount < 0).reduce((s, tx) => s + Math.abs(tx.amount), 0);
-      });
-      return { labels, income, expense };
-    }
-
-    /* ── NEW REPORT HELPER FUNCTIONS ── */
-    function getMonthsWithData(txs, year) {
-      const months = new Set(filterByPeriod(txs, year, null).map(tx => tx.date.slice(5, 7)));
-      return [...months].sort();
-    }
-
-    function renderSummaryBar(kpi) {
-      const container = document.getElementById('reportSummaryBar');
-      if (!container) return;
-      const income = Number(kpi.income) || 0;
-      const expense = Number(kpi.expense) || 0;
-      const total = income + expense;
-      if (total === 0) {
-        container.innerHTML = '';
-        return;
-      }
-      const incomePct = Math.round((income / total) * 100);
-      const expensePct = 100 - incomePct;
-      container.innerHTML = `
-        <div class="summary-bar-label">
-          <span>수입 · 지출 비율</span>
-          <span style="color:var(--t1);font-weight:600">${incomePct}% · ${expensePct}%</span>
-        </div>
-        <div class="summary-bar-track">
-          <div class="summary-bar-fill" style="width:${incomePct}%;background:var(--gr)">${incomePct}%</div>
-          <div class="summary-bar-fill" style="width:${expensePct}%;background:var(--rd)">${expensePct}%</div>
-        </div>
-      `;
-    }
-
-    function renderUnclassifiedBanner(allTxs) {
-      const container = document.getElementById('reportUnclassifiedBanner');
-      if (!container) return;
-      const unclassified = allTxs.filter(tx => !tx.excluded && tx.category === null);
-      if (unclassified.length === 0) {
-        container.classList.remove('show');
-        return;
-      }
-      container.innerHTML = `
-        <div class="banner-text">⚠️ ${unclassified.length}건의 거래가 미분류됩니다</div>
-        <button class="banner-btn" onclick="switchStep(1)">규칙 탭으로</button>
-      `;
-      container.classList.add('show');
-    }
-
-    function renderInsights(kpi, breakdown, allTxs, year, month) {
-      const container = document.getElementById('reportInsightRow');
-      if (!container) return;
-      const income = Number(kpi.income) || 0;
-      const net = Number(kpi.net) || 0;
-
-      let badges = [];
-
-      // 카테고리별 차지하는 비율과 금액
-      breakdown.forEach(cat => {
-        const colorInfo = getCategoryColor(cat.category);
-        const colorFg = colorInfo.fg || colorInfo;
-        badges.push({
-          label: cat.category,
-          value: `₩${fmtN(Math.abs(cat.total))}`,
-          sub: `${cat.pct}%`,
-          color: colorFg
-        });
-      });
-
-      // 수익률
-      if (income > 0) {
-        const profitMargin = Math.round((net / income) * 100);
-        badges.push({
-          label: '수익률',
-          value: `${profitMargin}%`,
-          color: net >= 0 ? 'var(--gr)' : 'var(--rd)'
-        });
-      }
-
-      if (badges.length === 0) {
-        container.innerHTML = '';
-        return;
-      }
-
-      container.innerHTML = badges.map(b => `
-        <div class="insight-badge" style="border-left:3px solid ${b.color}">
-          <div class="insight-badge-label">${b.label}</div>
-          <div class="insight-badge-value" style="color:${b.color || 'var(--t1)'}">${b.value}</div>
-          ${b.sub ? `<div style="font-size:11px;color:var(--t3)">${b.sub}</div>` : ''}
-        </div>
-      `).join('');
-    }
-
-    function renderReport() {
-      const all = getActiveTransactions();
-      if (!all.length) {
-        toast('제외되지 않은 거래가 없습니다');
-        return;
-      }
-
-      const years = getYears(all);
-      renderPeriodBar(years);
-      renderUnclassifiedBanner(all);
-
-      // 기존 차트 인스턴스 모두 destroy
-      reportChartInstances.forEach(c => c?.destroy());
-      reportChartInstances = [];
-
-      // 모든 연도·월 섹션 렌더링
-      const container = document.getElementById('reportAllSections');
-      container.innerHTML = '';
-
-      years.forEach(year => {
-        container.appendChild(buildYearSection(year, all));
-        getMonthsWithData(all, year).sort().forEach(month => {
-          container.appendChild(buildMonthSection(year, month, all));
-        });
-      });
-
-      // Scroll Spy 초기화
-      initScrollSpy();
-    }
-
-    /**
-     * 연도 섹션 빌드
-     */
-    function buildYearSection(year, allTxs) {
-      const wrapper = document.createElement('div');
-      wrapper.id = `report-${year}`;
-      wrapper.className = 'report-section';
-
-      const yearTxs = filterByPeriod(allTxs, year, null);
-      const classifiedTxs = yearTxs.filter(tx => tx.category !== null && !tx.inactiveRule);
-      const kpi = calcKpi(classifiedTxs);
-      const breakdown = calcCategoryBreakdown(classifiedTxs);
-      const monthsWithData = getMonthsWithData(allTxs, year);
-
-      let html = `<div class="report-section-title">${year}년</div>`;
-
-      // KPI 카드
-      const incomeStr = fmtN(Math.abs(kpi.income));
-      const expenseStr = fmtN(Math.abs(kpi.expense));
-      const netStr = fmtN(Math.abs(kpi.net));
-      html += `
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
-          <div class="kpi-card"><div class="kpi-label">총 수입</div><div class="kpi-value" style="color:var(--gr)">₩${incomeStr}</div></div>
-          <div class="kpi-card"><div class="kpi-label">총 지출</div><div class="kpi-value" style="color:var(--rd)">₩${expenseStr}</div></div>
-          <div class="kpi-card"><div class="kpi-label">순이익</div><div class="kpi-value" style="color:${kpi.net >= 0 ? 'var(--gr)' : 'var(--rd)'}">₩${netStr}</div></div>
-        </div>
-      `;
-
-      // 비율 바
-      renderSummaryBar(kpi);
-      const summaryBarHtml = document.getElementById('reportSummaryBar').innerHTML;
-      html += `<div id="temp-summary" style="margin-bottom:20px">${summaryBarHtml}</div>`;
-
-      // 라인 차트 (월 2개 이상이면)
-      if (monthsWithData.length > 1) {
-        const canvasId = `line-${year}`;
-        html += `
-          <div class="card" style="padding:16px;display:flex;flex-direction:column;margin-bottom:20px">
-            <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">월별 추이</div>
-            <canvas id="${canvasId}" height="300"></canvas>
-          </div>
-        `;
-      }
-
-      // 인사이트
-      renderInsights(kpi, breakdown, allTxs, year, null);
-      const insightHtml = document.getElementById('reportInsightRow').innerHTML;
-      html += `<div style="margin-bottom:20px">${insightHtml}</div>`;
-
-      // 카테고리 상세 (년도 섹션 ID 포함)
-      renderCategoryDetails(breakdown, classifiedTxs, `report-${year}`);
-      const catDetailsHtml = document.getElementById('reportCatDetailsContainer').innerHTML;
-      html += `<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">카테고리별 상세</div>${catDetailsHtml}</div>`;
-
-      wrapper.innerHTML = html;
-
-      // 라인 차트 렌더링 (wrapper 반환 전에 차트 생성)
-      if (monthsWithData.length > 1) {
-        const canvasId = `line-${year}`;
-        // setTimeout으로 DOM 레이아웃 완료 후 차트 렌더링
-        setTimeout(() => {
-          const canvas = document.getElementById(canvasId);
-          if (canvas) {
-            const chartInstance = renderMonthlyLineChart(allTxs, year, canvasId);
-            if (chartInstance) reportChartInstances.push(chartInstance);
-          }
-        }, 0);
-      }
-
-      return wrapper;
-    }
-
-    /**
-     * 월 섹션 빌드
-     */
-    function buildMonthSection(year, month, allTxs) {
-      const wrapper = document.createElement('div');
-      wrapper.id = `report-${year}-${month}`;
-      wrapper.className = 'report-section';
-
-      const monthTxs = filterByPeriod(allTxs, year, month);
-      const classifiedTxs = monthTxs.filter(tx => tx.category !== null && !tx.inactiveRule);
-      const kpi = calcKpi(classifiedTxs);
-      const breakdown = calcCategoryBreakdown(classifiedTxs);
-      const monthName = parseInt(month) + '월';
-
-      let html = `<div class="report-section-title">${year}년 ${monthName}</div>`;
-
-      // KPI 카드
-      const incomeStr = fmtN(Math.abs(kpi.income));
-      const expenseStr = fmtN(Math.abs(kpi.expense));
-      const netStr = fmtN(Math.abs(kpi.net));
-      html += `
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
-          <div class="kpi-card"><div class="kpi-label">총 수입</div><div class="kpi-value" style="color:var(--gr)">₩${incomeStr}</div></div>
-          <div class="kpi-card"><div class="kpi-label">총 지출</div><div class="kpi-value" style="color:var(--rd)">₩${expenseStr}</div></div>
-          <div class="kpi-card"><div class="kpi-label">순이익</div><div class="kpi-value" style="color:${kpi.net >= 0 ? 'var(--gr)' : 'var(--rd)'}">₩${netStr}</div></div>
-        </div>
-      `;
-
-      // 비율 바
-      renderSummaryBar(kpi);
-      const summaryBarHtml = document.getElementById('reportSummaryBar').innerHTML;
-      html += `<div style="margin-bottom:20px">${summaryBarHtml}</div>`;
-
-      // 도넛 차트
-      const canvasId = `doughnut-${year}-${month}`;
-      html += `
-        <div class="card" style="padding:16px;display:flex;flex-direction:column;align-items:center;margin-bottom:20px">
-          <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:12px">카테고리 비율</div>
-          <canvas id="${canvasId}" height="300" width="300"></canvas>
-        </div>
-      `;
-
-      // 인사이트
-      renderInsights(kpi, breakdown, allTxs, year, month);
-      const insightHtml = document.getElementById('reportInsightRow').innerHTML;
-      html += `<div style="margin-bottom:20px">${insightHtml}</div>`;
-
-      // 카테고리 상세 (월 섹션 ID 포함)
-      renderCategoryDetails(breakdown, classifiedTxs, `report-${year}-${month}`);
-      const catDetailsHtml = document.getElementById('reportCatDetailsContainer').innerHTML;
-      html += `<div><div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:10px">카테고리별 상세</div>${catDetailsHtml}</div>`;
-
-      wrapper.innerHTML = html;
-
-      // 도넛 차트 렌더링 (wrapper 반환 전에 차트 생성)
-      if (breakdown.length > 0) {
-        // setTimeout으로 DOM 레이아웃 완료 후 차트 렌더링
-        setTimeout(() => {
-          const canvas = document.getElementById(canvasId);
-          if (canvas) {
-            const chartInstance = renderDoughnutChart(breakdown, canvasId);
-            if (chartInstance) reportChartInstances.push(chartInstance);
-          }
-        }, 0);
-      }
-
-      return wrapper;
-    }
-
-    function renderPeriodBar(years) {
-      const bar = document.getElementById('reportPeriodBar');
-      if (!bar) return;
-
-      let html = '';
-
-      // 모든 연도와 월의 라벨 렌더링
-      years.forEach(year => {
-        // 연도 라벨
-        html += `<button class="period-chip" data-target="report-${year}" onclick="scrollToSection('report-${year}')">${year}년</button>`;
-
-        // 해당 연도의 월 라벨들
-        const all = getActiveTransactions();
-        const months = getMonthsWithData(all, year).sort();
-        months.forEach(month => {
-          html += `<button class="period-chip" data-target="report-${year}-${month}" onclick="scrollToSection('report-${year}-${month}')">${parseInt(month)}월</button>`;
-        });
-      });
-
-      bar.innerHTML = html;
-    }
-
-    /**
-     * 해당 섹션으로 부드럽게 스크롤 이동
-     */
-    function scrollToSection(id) {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    /**
-     * Scroll Spy: 현재 화면에 보이는 섹션에 따라 라벨 활성화
-     */
-    function initScrollSpy() {
-      if (window._reportSpyObserver) window._reportSpyObserver.disconnect();
-
-      const observer = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-          if (!entry.isIntersecting) return;
-
-          // 모든 라벨 비활성화
-          document.querySelectorAll('.period-chip').forEach(c => c.classList.remove('active'));
-
-          // 현재 섹션에 해당하는 라벨 활성화
-          const chip = document.querySelector(`.period-chip[data-target="${entry.target.id}"]`);
-          if (chip) chip.classList.add('active');
-        });
-      }, { threshold: 0.15, rootMargin: '-10% 0px -70% 0px' });
-
-      // 모든 섹션에 observer 등록
-      document.querySelectorAll('.report-section').forEach(el => observer.observe(el));
-      window._reportSpyObserver = observer;
-    }
-
-    function renderKpiCards(kpi) {
-      const row = document.getElementById('kpiRow');
-      if (!row || !kpi) return;
-      const income = Number(kpi.income) || 0;
-      const expense = Number(kpi.expense) || 0;
-      const net = Number(kpi.net) || 0;
-      const cards = [
-        { label: '총 수입', value: income, color: 'var(--gr)', sub: '(+) 합계' },
-        { label: '총 지출', value: expense, color: 'var(--rd)', sub: '(-) 합계' },
-        { label: '순이익',  value: net,     color: net >= 0 ? 'var(--gr)' : 'var(--rd)', sub: '수입 - 지출' }
-      ];
-      row.innerHTML = cards.map(c => `
-        <div class="kpi-card">
-          <div class="kpi-label">${c.label}</div>
-          <div class="kpi-value" style="color:${c.color}">₩${fmtN(Math.abs(c.value))}</div>
-          <div class="kpi-sub">${c.sub}</div>
-        </div>
-      `).join('');
-      console.log('[Report] KPI:', { income, expense, net });
-    }
-
-    const CAT_COLORS = ['#e8650a','#16a34a','#2563eb','#d97706','#9333ea','#0891b2','#dc2626','#64748b'];
-
-    function renderMonthlyLineChart(allTxs, year, canvasId) {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas || !allTxs || !year) return;
-      year = String(year);  // 문자열로 명시적 변환
-      const { labels, income, expense } = buildMonthlyChartData(allTxs, year);
-
-      // 데이터 검증
-      const totalIncome = income.reduce((s, v) => s + v, 0);
-      const totalExpense = expense.reduce((s, v) => s + v, 0);
-      console.log('[Report] Monthly line chart data:', { year, totalIncome, totalExpense, incomeArray: income, expenseArray: expense });
-
-      if (totalIncome === 0 && totalExpense === 0) {
-        console.warn('[Report] No monthly data for year:', year);
-        return;
-      }
-
-      const maxValue = Math.max(...income, ...expense, 0);
-      // 만원 단위로 올림
-      const maxManWon = maxValue > 0 ? Math.ceil(maxValue / 10000) : 100;
-      const roundedMaxManWon = Math.ceil(maxManWon / 5) * 5;
-      const yMax = roundedMaxManWon * 10000;
-      const stepManWon = roundedMaxManWon / 5;
-      const stepSize = stepManWon * 10000;
-
-      // canvas 크기 부모 요소에 맞추기
-      const parentWidth = canvas.parentElement.offsetWidth - 32;
-      canvas.width = parentWidth;
-      canvas.height = 280;
-
-      const chartInstance = new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: '수입',
-              data: income,
-              borderColor: '#16a34a',
-              backgroundColor: 'rgba(22,163,74,.1)',
-              borderWidth: 2,
-              fill: true,
-              tension: 0.3,
-              pointBackgroundColor: '#16a34a',
-              pointRadius: 4
-            },
-            {
-              label: '지출',
-              data: expense,
-              borderColor: '#dc2626',
-              backgroundColor: 'rgba(220,38,38,.1)',
-              borderWidth: 2,
-              fill: true,
-              tension: 0.3,
-              pointBackgroundColor: '#dc2626',
-              pointRadius: 4
-            }
-          ]
-        },
-        options: {
-          responsive: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 11 } } },
-            layout: { padding: { left: 10, right: 20, top: 10 } }
-          },
-          scales: {
-            x: {
-              ticks: {
-                autoSkip: false,
-                maxRotation: 0,
-                minRotation: 0,
-                font: { size: 11 }
-              }
-            },
-            y: {
-              max: yMax,
-              ticks: {
-                stepSize: stepSize,
-                callback: v => {
-                  const manWon = Math.round(v / 10000);
-                  return `₩${fmtN(manWon)} 만원`;
-                }
-              },
-              grid: { color: 'rgba(0,0,0,.05)' }
-            }
-          }
-        }
-      });
-
-      return chartInstance;
-    }
-
-    function renderDoughnutChart(breakdown, canvasId) {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas || !breakdown || !breakdown.length) {
-        console.warn('[Report] No breakdown data for doughnut chart');
-        return;
-      }
-      const labels = breakdown.map(r => r.category);
-      const data   = breakdown.map(r => Math.abs(r.total));
-      const bgColors = breakdown.map(r => {
-        const color = getCategoryColor(r.category);
-        let bgColor = color.bg || color;
-        // rgba 색상을 더 진하게 만들기 (알파값 증가)
-        if (bgColor.startsWith('rgba')) {
-          bgColor = bgColor.replace(/,\s*[\d.]+\)/, ', 0.6)');
-        }
-        return bgColor;
-      });
-
-      // canvas 크기 명시적 설정
-      canvas.width = canvas.parentElement.offsetWidth;
-      canvas.height = 280;
-      const chartInstance = new Chart(canvas, {
-        type: 'doughnut',
-        data: {
-          labels,
-          datasets: [{
-            data,
-            backgroundColor: bgColors,
-            borderWidth: 2,
-            borderColor: '#fff'
-          }]
-        },
-        options: {
-          responsive: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 12 }, boxWidth: 14, padding: 15 } },
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const idx = ctx.dataIndex;
-                  const pct = breakdown[idx]?.pct || 0;
-                  return ` ₩${fmtN(ctx.raw)} (${pct}%)`;
-                }
-              }
-            }
-          }
-        }
-      });
-      console.log('[Report] Doughnut chart rendered:', labels);
-      return chartInstance;
-    }
-
-    function renderCategoryDetails(breakdown, periodTxs, sectionId) {
-      // sectionId를 사용하여 고유한 ID 생성 (예: section-id가 'report-2026-4'면 'detail-report-2026-4-0')
-      // sectionId가 없으면 임시 고유값 생성
-      const uniquePrefix = sectionId || `temp-${Date.now()}-${Math.random()}`;
-
-      const html = breakdown.map((r, idx) => {
-        const colorInfo = getCategoryColor(r.category);
-        const colorFg = colorInfo.fg || colorInfo;
-        const detailId = `detail-${uniquePrefix}-${idx}`;
-        const iconId = `icon-${uniquePrefix}-${idx}`;
-        const txsContainerId = `catTxs-${uniquePrefix}-${idx}`;
-        return `
-        <div style="margin-bottom:12px;border:1px solid var(--b1);border-radius:var(--r8);overflow:hidden">
-          <!-- 토글 헤더 -->
-          <div style="padding:14px 16px;background:var(--s2);cursor:pointer;display:flex;align-items:center;gap:12px" onclick="toggleCategoryDetail('${detailId}', this)">
-            <span id="${iconId}" style="font-size:14px">▼</span>
-            <div style="width:8px;height:8px;border-radius:50%;background:${colorFg};flex-shrink:0"></div>
-            <span style="flex:1;font-size:13px;font-weight:600;color:var(--t1)">${esc(r.category)}</span>
-            <span style="font-size:13px;font-weight:600;color:var(--t2)">₩${fmtN(Math.abs(r.total))}</span>
-            <span style="font-size:12px;color:var(--t3);min-width:40px;text-align:right">${r.pct}%</span>
-            <span style="font-size:12px;color:var(--t3);min-width:40px;text-align:right">${r.count}건</span>
-          </div>
-          <!-- 토글 콘텐츠 (거래 내역) -->
-          <div id="${detailId}" style="display:none;padding:16px;background:var(--s1);max-height:400px;overflow-y:auto">
-            <div style="font-size:12px;color:var(--t3);margin-bottom:10px">해당 카테고리의 거래 내역</div>
-            <div id="${txsContainerId}"></div>
-          </div>
-        </div>
-      `;
-      }).join('');
-
-      // 임시 컨테이너에 렌더링
-      const container = document.getElementById('reportCatDetailsContainer');
-      if (container) container.innerHTML = html;
-
-      // 각 카테고리의 거래 내역 렌더링 (선택한 기간에서만)
-      breakdown.forEach((r, idx) => {
-        const catTxs = periodTxs.filter(tx => tx.category === r.category);
-        const txsHtml = catTxs.map(tx => `
-          <div style="padding:8px;border-bottom:1px solid var(--b2);font-size:11px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-              <span style="color:var(--t2)">${esc(tx.date)}</span>
-              <span style="font-weight:600">${tx.amount > 0 ? '<span style="color:var(--gr)">+' : '<span style="color:var(--rd)">'}₩${fmtN(Math.abs(tx.amount))}</span></span>
-            </div>
-            <div style="color:var(--t3)">${esc(tx.desc)}</div>
-          </div>
-        `).join('');
-
-        const txsContainerId = `catTxs-${uniquePrefix}-${idx}`;
-        const txsContainer = document.getElementById(txsContainerId);
-        if (txsContainer) {
-          txsContainer.innerHTML = txsHtml || '<div style="color:var(--t3);padding:8px">거래 내역이 없습니다</div>';
-        }
-      });
-
-      // 반환된 HTML (임시 컨테이너에서 캡처하기 위함)
-      return html;
-    }
-
-    function toggleCategoryDetail(detailId, header) {
-      const detail = document.getElementById(detailId);
-      const icon = header.querySelector('span:first-child');
-      if (detail.style.display === 'none') {
-        detail.style.display = 'block';
-        icon.textContent = '▼';
-      } else {
-        detail.style.display = 'none';
-        icon.textContent = '▶';
-      }
-    }
-
-    function copyReportText() {
-      const all = getActiveTransactions();
-      if (!all.length) {
-        toast('복사할 데이터가 없습니다');
-        return;
-      }
-
-      const years = getYears(all);
-      let md = `# 에어비앤비 수익 리포트\n\n`;
-      md += `생성일: ${new Date().toLocaleDateString('ko-KR')}\n\n`;
-
-      years.forEach(year => {
-        md += `## ${year}년 전체\n\n`;
-
-        const yearTxs = filterByPeriod(all, year, null);
-        const classifiedYearTxs = yearTxs.filter(tx => tx.category !== null);
-        const yearKpi = calcKpi(classifiedYearTxs);
-        const yearBreakdown = calcCategoryBreakdown(classifiedYearTxs);
-
-        // 년도 KPI
-        md += `### KPI\n`;
-        md += `| 항목 | 금액 |\n`;
-        md += `|------|--------|\n`;
-        md += `| 총 수입 | ₩${fmtN(yearKpi.income)} |\n`;
-        md += `| 총 지출 | ₩${fmtN(yearKpi.expense)} |\n`;
-        md += `| 순이익 | ₩${fmtN(yearKpi.net)} |\n\n`;
-
-        // 년도 카테고리별 분석
-        if (yearBreakdown.length > 0) {
-          md += `### 카테고리별 분석\n`;
-          md += `| 카테고리 | 금액 | 비율 | 거래수 |\n`;
-          md += `|----------|------|------|--------|\n`;
-          yearBreakdown.forEach(r => {
-            md += `| ${r.category} | ₩${fmtN(Math.abs(r.total))} | ${r.pct}% | ${r.count}건 |\n`;
-          });
-          md += '\n';
-        }
-
-        // 월별 상세
-        const monthsWithData = getMonthsWithData(all, year).sort();
-        if (monthsWithData.length > 0) {
-          md += `### 월별 상세\n\n`;
-
-          monthsWithData.forEach(month => {
-            md += `#### ${year}년 ${parseInt(month)}월\n\n`;
-
-            const monthTxs = filterByPeriod(all, year, month);
-            const classifiedMonthTxs = monthTxs.filter(tx => tx.category !== null);
-            const monthKpi = calcKpi(classifiedMonthTxs);
-            const monthBreakdown = calcCategoryBreakdown(classifiedMonthTxs);
-
-            // 월별 KPI
-            md += `| 항목 | 금액 |\n`;
-            md += `|------|--------|\n`;
-            md += `| 총 수입 | ₩${fmtN(monthKpi.income)} |\n`;
-            md += `| 총 지출 | ₩${fmtN(monthKpi.expense)} |\n`;
-            md += `| 순이익 | ₩${fmtN(monthKpi.net)} |\n\n`;
-
-            // 월별 카테고리
-            if (monthBreakdown.length > 0) {
-              md += `| 카테고리 | 금액 | 비율 | 거래수 |\n`;
-              md += `|----------|------|------|--------|\n`;
-              monthBreakdown.forEach(r => {
-                md += `| ${r.category} | ₩${fmtN(Math.abs(r.total))} | ${r.pct}% | ${r.count}건 |\n`;
-              });
-            }
-            md += '\n';
-          });
-        }
-
-        md += '---\n\n';
-      });
-
-      // 클립보드에 복사
-      navigator.clipboard.writeText(md).then(() => {
-        toast('마크다운 형식으로 복사되었습니다 (Notion 붙여넣기 가능)');
-      }).catch(err => {
-        console.error('복사 실패:', err);
-        toast('복사 실패했습니다');
-      });
-    }
-
-    function exportReviewData() {
-      const active = state.transactions.filter(tx => !tx.excluded);
-      if (!active.length) {
-        toast('내보낼 데이터가 없습니다');
-        return;
-      }
-
-      // 헤더 작성
-      let txt = '날짜\t설명\t메모\t금액\t카테고리\n';
-
-      // 데이터 행 작성
-      active.forEach(tx => {
-        const amount = tx.amount < 0 ? `-${Math.abs(tx.amount)}` : tx.amount;
-        txt += `${tx.date}\t${tx.desc}\t${tx.memo || '-'}\t${amount}\t${tx.category}\n`;
-      });
-
-      navigator.clipboard.writeText(txt)
-        .then(() => toast('데이터가 복사되었습니다 (엑셀에 붙여넣기 가능)'))
-        .catch(() => toast('복사 실패 - 브라우저 권한을 확인하세요'));
-    }
-
-    function showWarn(msg) {
-      const el = document.getElementById('mo_warn');
-      el.textContent = msg;
-      el.style.display = 'block';
-    }
-
-    /* ── HELPERS ── */
-    function showMsg(elementId, text, type) {
-      const el = document.getElementById(elementId);
-      const colors = {
-        success: { bg: 'rgba(22,163,74,.08)', border: 'rgba(22,163,74,.2)', color: 'var(--gr)' },
-        error: { bg: 'rgba(220,38,38,.08)', border: 'rgba(220,38,38,.2)', color: 'var(--rd)' },
-        warning: { bg: 'rgba(217,119,6,.08)', border: 'rgba(217,119,6,.2)', color: 'var(--am)' }
-      };
-      const c = colors[type] || colors.success;
-      el.innerHTML = `<div style="background:${c.bg};border:1px solid ${c.border};border-radius:var(--r8);padding:10px 14px;font-size:13px;color:${c.color}">${esc(text)}</div>`;
-      el.style.display = 'block';
-    }
-
-    function toast(msg) {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.classList.add('show');
-      setTimeout(() => el.classList.remove('show'), 2800);
-    }
-
-    function esc(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
-    function fmtN(num) {
-      return num.toLocaleString('ko-KR');
-    }
+    /* ── ⑥ REPORT GENERATION (Step 4) ── */
+    // 리포트 생성 및 데이터 내보내기 함수들은 js/report-generator.js로 분리됨
+    // - completeStep4(), getActiveTransactions()
+    // - renderReport(), buildYearSection(), buildMonthSection()
+    // - renderSummaryBar(), renderUnclassifiedBanner(), renderInsights()
+    // - renderPeriodBar(), scrollToSection(), initScrollSpy()
+    // - renderKpiCards(), renderCategoryDetails(), toggleCategoryDetail()
+    // - copyReportText(), exportReviewData()
+
+    // 공용 유틸리티 함수들은 js/utils.js로 분리됨
+    // - showWarn(), showMsg(), toast(), esc(), fmtN()
   </script>
 
   <!-- MODAL: PARSING EXCLUDED ROWS -->
