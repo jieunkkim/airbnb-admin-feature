@@ -38,25 +38,43 @@
 
 @media print{
   body{background:#fff;font-size:12px}
-  .bg-glow,.hdr-btns,.del-btn,.add-area,#toast{display:none!important}
+  .bg-glow,.hdr-btns,.del-btn,.add-area,#toast,.adj-btn,.modal-overlay{display:none!important}
   .wrap{padding:16px;max-width:100%}
   .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
   .tbl-input,.notes-area textarea{border:none!important;padding:4px;background:transparent!important;box-shadow:none!important}
   .total-row{background:none;border:2px solid #e8650a}
   table{min-width:0}.disc-row{background:transparent}
 }
+/* ── PRICE ADJUSTMENT MODAL ── */
+.adj-btn{padding:6px 12px;font-size:12px;font-weight:600;background:var(--ac);color:#fff;border:none;border-radius:var(--r4);cursor:pointer;transition:all .15s;white-space:nowrap}
+.adj-btn:hover{background:var(--ac2)}
+.tgl-btn{padding:6px 12px;font-size:12px;font-weight:600;background:var(--s2);color:var(--t2);border:1px solid var(--b2);border-radius:var(--r4);cursor:pointer;transition:all .15s;white-space:nowrap}
+.tgl-btn:hover{background:var(--s3);border-color:var(--b1)}
+.tgl-btn.active{background:var(--ac);color:#fff;border-color:var(--ac)}
+/* Hide price column when toggled */
+body.hide-price th:nth-child(5),
+body.hide-price td:nth-child(5){display:none}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;animation:fadeIn .2s ease}
+.modal-overlay.active{display:flex;justify-content:center;align-items:center}
+.modal-content{background:#fff;border-radius:var(--r12);box-shadow:0 10px 40px rgba(0,0,0,.2);padding:24px;max-width:360px;width:90%;animation:slideUp .3s ease}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--t1)}
+.modal-field{margin-bottom:16px}
+.modal-field label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.modal-field input{width:100%;padding:12px;border:1px solid var(--b2);border-radius:var(--r4);font-size:16px;outline:none;transition:border-color .15s;font-family:'DM Sans',sans-serif}
+.modal-field input:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--acg)}
+.modal-field input::placeholder{color:var(--t3)}
+.modal-btns{display:flex;gap:10px}
+.modal-btns button{flex:1;padding:11px;font-size:14px;font-weight:600;border:none;border-radius:var(--r4);cursor:pointer;transition:all .15s}
+.modal-apply{background:var(--ac);color:#fff}
+.modal-apply:hover{background:var(--ac2)}
+.modal-cancel{background:var(--s2);color:var(--t2);border:1px solid var(--b2)}
+.modal-cancel:hover{background:var(--s3)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 
-@media print{
-  body{background:#fff;font-size:12px}
-  .bg-glow,.hdr-btns,.del-btn,.add-area,#toast{display:none!important}
-  .wrap{padding:16px;max-width:100%}
-  .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
-  .tbl-input,.notes-area textarea{border:none!important;padding:4px;background:transparent!important;box-shadow:none!important}
-  .total-row{background:none;border:2px solid #e8650a}
-  table{min-width:0}.disc-row{background:transparent}
-}
 @media(max-width:860px){.hdr{flex-direction:column;align-items:flex-start}}
-@media(max-width:480px){.wrap{padding:20px 10px 60px}.kpi-val{font-size:18px}.total-val{font-size:22px}.input-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.wrap{padding:20px 10px 60px}.kpi-val{font-size:18px}.total-val{font-size:22px}.input-grid{grid-template-columns:1fr 1fr}
+.modal-content{width:95%;max-width:100%;padding:20px}}
 </style>
 </head>
 <body>
@@ -120,10 +138,12 @@
 
 <!-- ITEMS TABLE -->
 <div class="card fuv d2" style="margin-top:16px">
-  <div class="card-hdr">
+  <div class="card-hdr" style="gap:10px">
     <div class="card-ico" style="background:rgba(217,119,6,.1)">🛏️</div>
     <span class="card-ttl">품목 목록</span>
-    <span style="margin-left:auto;font-size:12px;color:var(--t3);font-weight:500" id="item_count">0개</span>
+    <button class="adj-btn" onclick="openPriceAdjustModal()" style="margin-left:auto">💰 단가 조정</button>
+    <button class="tgl-btn" id="price_toggle" onclick="togglePriceColumn()" title="단가 열 표시/숨김">단가 숨김</button>
+    <span style="font-size:12px;color:var(--t3);font-weight:500" id="item_count">0개</span>
   </div>
   <div class="card-body" style="padding-bottom:0">
     <div class="tbl-scroll">
@@ -157,6 +177,26 @@
 </div>
 
 </div>
+
+<!-- PRICE ADJUST MODAL -->
+<div id="adj_modal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-title">단가 조정</div>
+    <div class="modal-field">
+      <label>인상률 (%)</label>
+      <input type="number" id="adj_percent_modal" placeholder="예: 10" min="0" max="999" value="10">
+    </div>
+    <div class="modal-btns">
+      <button class="modal-apply" onclick="applyPriceAdjustmentFromModal()">단가 인상 적용</button>
+      <button class="modal-cancel" onclick="closePriceAdjustModal()">취소</button>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--b2);font-size:12px;color:var(--t3);line-height:1.6">
+      💡 <strong>10% 입력 예시:</strong> 10,000원 → 11,000원<br>
+      💡 가격은 100원 단위로 반올림됩니다
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -187,6 +227,8 @@ let personOverride = false;
 /* ═══════════ INIT ═══════════ */
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('quote_date').value = new Date().toISOString().split('T')[0];
+  const savedPriceToggle = localStorage.getItem('bedding_hide_price');
+  if(savedPriceToggle==='true') togglePriceColumn();
   buildItems();
   recalc();
 });
@@ -212,7 +254,7 @@ function pushRow(cfg){
   const sizeStr = cfg.bedSize ? SIZES[cfg.bedSize][cfg.sizeField] : (cfg.size||'');
   const price = cfg.bedSize ? (cfg.bedSize==='Q' ? cfg.priceQ : cfg.priceSS) : (cfg.price||0);
   const item = { id, key:cfg.key, name:cfg.name, type:cfg.type, bedSize:cfg.bedSize||null,
-    multi:cfg.multi, sizeField:cfg.sizeField||null, size:sizeStr, price:price,
+    multi:cfg.multi, sizeField:cfg.sizeField||null, size:sizeStr, price:price, originalPrice:price,
     note:cfg.note||'', custom:false };
   items.push(item);
   renderRow(item);
@@ -221,7 +263,7 @@ function pushRow(cfg){
 function addCustomRow(){
   const id = ++uid;
   const item = { id, key:'custom_'+id, name:'', type:'custom', bedSize:null,
-    multi:1, sizeField:null, size:'', price:0, note:'', custom:true, customQty:0 };
+    multi:1, sizeField:null, size:'', price:0, originalPrice:0, note:'', custom:true, customQty:0 };
   items.push(item);
   renderRow(item);
   recalc();
@@ -279,8 +321,8 @@ function renderRow(item){
 function esc(s){return(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
 function fmtN(n){return n?(+n).toLocaleString('ko-KR'):'0'}
 function upd(id,k,v){const it=items.find(i=>i.id===id);if(it)it[k]=v}
-function priceIn(el,id){const r=el.value.replace(/,/g,'').replace(/[^0-9]/g,'');upd(id,'price',+r);recalc()}
-function priceOut(el,id){const r=el.value.replace(/,/g,'').replace(/[^0-9]/g,'');el.value=fmtN(+r);upd(id,'price',+r);recalc()}
+function priceIn(el,id){const r=el.value.replace(/,/g,'').replace(/[^0-9]/g,'');upd(id,'price',+r);upd(id,'originalPrice',+r);recalc()}
+function priceOut(el,id){const r=el.value.replace(/,/g,'').replace(/[^0-9]/g,'');el.value=fmtN(+r);upd(id,'price',+r);upd(id,'originalPrice',+r);recalc()}
 function delRow(id){items=items.filter(i=>i.id!==id);document.getElementById('row_'+id)?.remove();renumber();recalc()}
 
 function renumber(){
@@ -397,6 +439,56 @@ function copyMarkdown(){
   navigator.clipboard.writeText(md)
     .then(()=>toast('✅ 마크다운 복사 완료'))
     .catch(()=>toast('⚠️ 복사 실패 — 직접 선택해 복사해주세요'));
+}
+
+/* ═══════════ TOGGLE PRICE COLUMN ═══════════ */
+function togglePriceColumn(){
+  const body = document.body;
+  const btn = document.getElementById('price_toggle');
+  const isHidden = body.classList.toggle('hide-price');
+  btn.classList.toggle('active', isHidden);
+  localStorage.setItem('bedding_hide_price', isHidden);
+  toast(isHidden ? '👁️ 단가를 숨겼습니다' : '👁️ 단가를 표시했습니다');
+}
+
+/* ═══════════ PRICE ADJUSTMENT MODAL ═══════════ */
+function openPriceAdjustModal(){
+  document.getElementById('adj_modal').classList.add('active');
+  document.getElementById('adj_percent_modal').focus();
+}
+function closePriceAdjustModal(){
+  document.getElementById('adj_modal').classList.remove('active');
+}
+document.addEventListener('click',e=>{
+  const modal=document.getElementById('adj_modal');
+  if(e.target===modal)closePriceAdjustModal();
+});
+
+/* ═══════════ PRICE ADJUSTMENT ═══════════ */
+function applyPriceAdjustmentFromModal(){
+  const pctEl=document.getElementById('adj_percent_modal');
+  const pct=parseFloat(pctEl.value)||0;
+  if(pct<0){toast('⚠️ 음수 입력은 불가능합니다');return}
+  const multiplier=1+(pct/100);
+  items.forEach(item=>{
+    const rawPrice=(item.originalPrice||0)*multiplier;
+    const adjPrice=Math.round(rawPrice/100)*100;
+    item.price=adjPrice;
+    const input=document.querySelector(`#row_${item.id} .tbl-input[style*="width:100px"]`);
+    if(input)input.value=fmtN(adjPrice);
+  });
+  recalc();
+  closePriceAdjustModal();
+  toast(`✅ 단가를 ${pct}% 인상했습니다 (100원 단위 반올림)`);
+}
+function resetPrices(){
+  items.forEach(item=>{
+    item.price=item.originalPrice||0;
+    const input=document.querySelector(`#row_${item.id} .tbl-input[style*="width:100px"]`);
+    if(input)input.value=fmtN(item.originalPrice||0);
+  });
+  recalc();
+  toast('↺ 단가를 원래값으로 복구했습니다');
 }
 
 /* ═══════════ TOAST ═══════════ */
