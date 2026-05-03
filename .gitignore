@@ -9,6 +9,9 @@
 test-data/
 tools/Untitled
 
+# Batch data (generated dynamically)
+data/
+
 # OS files
 .DS_Store
 *.swp

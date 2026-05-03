@@ -9,44 +9,35 @@
   <script src="../js/region-codes.js"></script>
   <script src="../js/business-status-codes.js"></script>
   <style>
-    /* ── INPUT GRID ── */
-    .input-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px 18px}
+    /* ── FILTER SECTION ── */
+    .filter-section { background: var(--s1); border: 1px solid var(--b1); border-radius: var(--r12); padding: 20px; margin-bottom: 20px; }
+    .filter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; }
+    .filter-group label { font-size: 12px; font-weight: 600; color: var(--t2); text-transform: uppercase; letter-spacing: 0.5px; }
+    .filter-group select, .filter-group input { padding: 10px; border: 1px solid var(--b2); border-radius: var(--r4); font-size: 13px; font-family: 'DM Sans', sans-serif; transition: border-color 0.15s; }
+    .filter-group select:focus, .filter-group input:focus { border-color: var(--ac); outline: none; box-shadow: 0 0 0 3px var(--acg); }
+    .filter-date-range { display: flex; gap: 8px; align-items: flex-end; }
+    .filter-date-range .filter-group { flex: 1; }
+    .filter-date-range span { color: var(--t3); font-weight: 600; padding-bottom: 9px; }
 
-    /* ── KPI CARDS ── */
-    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
-    .kpi-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r12);padding:16px;text-align:center}
-    .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);font-weight:600;margin-bottom:8px}
-    .kpi-val{font-size:28px;font-weight:800;color:var(--ac);font-variant-numeric:tabular-nums}
-    .kpi-sub{font-size:11px;color:var(--t3);margin-top:4px}
+    .button-group { display: flex; gap: 8px; margin-top: 16px; }
+    .btn-search { flex: 1; padding: 12px; background: linear-gradient(135deg, var(--ac), var(--ac2)); color: #fff; border: none; border-radius: var(--r4); font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-search:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(232, 101, 10, 0.2); }
+    .btn-reset { padding: 12px 20px; background: var(--s2); color: var(--t2); border: 1px solid var(--b2); border-radius: var(--r4); font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-reset:hover { background: var(--s3); border-color: var(--b1); }
 
     /* ── CHART CONTAINER ── */
-    .chart-container{position:relative;height:300px;margin:20px 0;padding:16px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r12)}
+    .chart-container { position: relative; height: 300px; margin: 20px 0; padding: 16px; background: var(--s1); border: 1px solid var(--b1); border-radius: var(--r12); }
 
-    /* ── TABLE ── */
-    .tbl-scroll{overflow-x:auto;margin-bottom:12px}
-    table{width:100%;border-collapse:collapse;min-width:700px}
-    thead{background:var(--s2);border-bottom:1px solid var(--b1)}
-    thead th{padding:12px;text-align:left;font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
-    tbody td{padding:12px;border-bottom:1px solid var(--b1);font-size:13px;color:var(--t1)}
-    tbody tr:hover{background:rgba(232,101,10,.02)}
-    .addr-cell{font-size:12px;color:var(--t3);line-height:1.4}
-    .status-open{color:var(--gr);font-weight:600}
-    .status-closed{color:var(--rd);font-weight:600}
+    @media(max-width: 860px) { .hdr { flex-direction: column; align-items: flex-start; } .filter-row { grid-template-columns: 1fr; } }
+    @media(max-width: 480px) { .wrap { padding: 20px 10px 60px; } .chart-container { height: 250px; } .filter-date-range { flex-direction: column; } }
 
-    /* ── BUTTONS ── */
-    .export-btn{padding:8px 16px;font-size:12px;font-weight:600;background:var(--bl);color:#fff;border:none;border-radius:var(--r4);cursor:pointer;transition:all .15s;margin-right:8px}
-    .export-btn:hover{background:#1d4ed8}
-
-    @media(max-width:860px){.hdr{flex-direction:column;align-items:flex-start}}
-    @media(max-width:480px){.wrap{padding:20px 10px 60px}.kpi-val{font-size:22px}.chart-container{height:250px}.tbl-scroll table{min-width:0}}
-
-    @media print{
-      body{background:#fff;font-size:11px}
-      .bg-glow,.hdr-btns,#toast{display:none!important}
-      .wrap{padding:16px;max-width:100%}
-      .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
-      .chart-container{height:200px;page-break-inside:avoid}
-      table{min-width:0}
+    @media print {
+      body { background: #fff; font-size: 11px; }
+      .bg-glow, .hdr-btns, #toast, .filter-section, .button-group { display: none!important; }
+      .wrap { padding: 16px; max-width: 100%; }
+      .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+      .chart-container { height: 200px; page-break-inside: avoid; }
     }
   </style>
 </head>
@@ -59,123 +50,80 @@
     <!-- HEADER -->
     <div class="hdr fuv">
       <div>
-        <h1 class="pg-title">외국인 도시 <span>민박업 현황</span><span class="ver-badge">v1 · 2026-05-03</span></h1>
-        <p class="pg-sub">공공데이터 기반 전국 외국인 관광 도시 민박업 허가 업장 현황</p>
-      </div>
-      <div class="hdr-btns">
-        <button class="notion-btn" onclick="resetFilters()">↺ 필터 초기화</button>
-        <button class="notion-btn" onclick="exportCSV()">📥 CSV 다운로드</button>
-        <button class="notion-btn primary" onclick="window.print()">🖨️ 인쇄</button>
+        <h1 class="pg-title">외국인 도시 <span>민박업 현황</span><span class="ver-badge">v2 · 2026-05-03</span></h1>
+        <p class="pg-sub">공공데이터 기반 전국 외국인 관광 도시 민박업 허가 업장 현황 조회</p>
       </div>
     </div>
 
-    <!-- FILTER CARD -->
-    <div class="card fuv d1">
-      <div class="card-hdr">
-        <div class="card-ico" style="background:rgba(232,101,10,.1)">🔍</div>
-        <span class="card-ttl">조건 필터</span>
+    <!-- FILTER SECTION -->
+    <div class="filter-section fuv d1">
+      <div style="margin-bottom: 16px;">
+        <h3 style="font-size: 14px; font-weight: 700; color: var(--t1); margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">조건 필터</h3>
       </div>
-      <div class="card-body">
-        <div class="input-grid">
-          <div class="ig-field">
-            <label>지역(시도)</label>
-            <select id="region_filter" onchange="recalc()">
-              <option value="">전체</option>
-            </select>
+
+      <!-- Row 1: 시도, 시군구, 인허가일자 범위, 영업상태 -->
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>개방자치단체코드</label>
+          <select id="sido_filter" onchange="updateSigunguFilter()">
+            <option value="">시도 선택</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>세부 지역</label>
+          <select id="sigungu_filter">
+            <option value="">전체</option>
+          </select>
+        </div>
+        <div class="filter-date-range">
+          <div class="filter-group" style="flex: 1;">
+            <label>인허가일자</label>
+            <input type="date" id="permit_date_from">
           </div>
-          <div class="ig-field">
-            <label>영업상태</label>
-            <select id="status_filter" onchange="recalc()">
-              <option value="">전체</option>
-              <option value="영업/정상">영업/정상</option>
-              <option value="영업중">영업중</option>
-            </select>
+          <span>~</span>
+          <div class="filter-group" style="flex: 1;">
+            <label></label>
+            <input type="date" id="permit_date_to">
           </div>
-          <div class="ig-field">
-            <label>건물용도</label>
-            <select id="building_filter" onchange="recalc()">
-              <option value="">전체</option>
-            </select>
+        </div>
+        <div class="filter-group">
+          <label>영업상태명</label>
+          <select id="status_filter">
+            <option value="">전체</option>
+            <option value="영업/정상">영업/정상 (01)</option>
+            <option value="휴업">휴업 (02)</option>
+            <option value="폐업">폐업 (03)</option>
+            <option value="취소/말소/만료/정지/중지">취소/말소/만료/정지/중지 (04)</option>
+            <option value="제외/삭제/전출">제외/삭제/전출 (05)</option>
+            <option value="기타">기타 (06)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Row 2: 사업장명, 조회 버튼 -->
+      <div class="filter-row">
+        <div style="grid-column: 1 / -1; display: flex; gap: 12px; align-items: flex-end;">
+          <div class="filter-group" style="flex: 1;">
+            <label>사업장명</label>
+            <input type="text" id="business_name_filter" placeholder="예: 서울 스테이">
           </div>
-          <div class="ig-field">
-            <label>데이터 상태</label>
-            <div style="padding-top:8px;color:var(--t3);font-size:12px">
-              <span id="data_status">로딩 중...</span>
-            </div>
+          <div class="button-group" style="margin: 0;">
+            <button class="btn-search" onclick="searchData()">🔍 조회</button>
+            <button class="btn-reset" onclick="resetFilters()">↺ 초기화</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- KPI CARDS -->
-    <div class="kpi-grid fuv d1">
-      <div class="kpi-card">
-        <div class="kpi-label">전체 업장</div>
-        <div class="kpi-val" id="kpi_total">0</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">영업중</div>
-        <div class="kpi-val" style="color:var(--gr)" id="kpi_active">0</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">폐업</div>
-        <div class="kpi-val" style="color:var(--rd)" id="kpi_closed">0</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">지역 수</div>
-        <div class="kpi-val" style="color:var(--bl)" id="kpi_regions">0</div>
-      </div>
-    </div>
-
-    <!-- CHARTS -->
+    <!-- CHART: 지역별 업장 분포 -->
     <div class="card fuv d2">
       <div class="card-hdr">
-        <div class="card-ico" style="background:rgba(37,99,235,.1)">📊</div>
+        <div class="card-ico" style="background: rgba(37, 99, 235, 0.1);">📊</div>
         <span class="card-ttl">지역별 업장 분포</span>
       </div>
       <div class="card-body">
         <div class="chart-container">
           <canvas id="regionChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <div class="card fuv d2">
-      <div class="card-hdr">
-        <div class="card-ico" style="background:rgba(22,163,74,.1)">📈</div>
-        <span class="card-ttl">허가 추이 (연도별)</span>
-      </div>
-      <div class="card-body">
-        <div class="chart-container">
-          <canvas id="trendChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- DATA TABLE -->
-    <div class="card fuv d3">
-      <div class="card-hdr">
-        <div class="card-ico" style="background:rgba(217,119,6,.1)">📋</div>
-        <span class="card-ttl">업장 목록</span>
-        <span style="font-size:12px;color:var(--t3);font-weight:500;margin-left:auto" id="table_count">0개</span>
-      </div>
-      <div class="card-body">
-        <div class="tbl-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>업장명</th>
-                <th>주소</th>
-                <th>지역</th>
-                <th>건물용도</th>
-                <th>객실수</th>
-                <th>규모(㎡)</th>
-                <th>영업상태</th>
-                <th>허가일</th>
-              </tr>
-            </thead>
-            <tbody id="table_body"></tbody>
-          </table>
         </div>
       </div>
     </div>
@@ -186,13 +134,11 @@
 
   <script>
     /* ═══════════ CONFIG ═══════════ */
-    const API_KEY = '13975442ce0832bbf042aab5064909e38fb717167213168ca3b81d484b7662d1';
-    const API_URL = 'https://apis.data.go.kr/1741000/foreigner_city_homestays/info';
+    const DATA_FILE = '../data/homestay-data.json';
 
     let allData = [];
     let filteredData = [];
     let regionChart = null;
-    let trendChart = null;
 
     /* ═══════════ UTILS ═══════════ */
     function esc(str){
@@ -212,158 +158,146 @@
       setTimeout(() => el.classList.remove('show'), 2800);
     }
 
-    /* ═══════════ API ═══════════ */
-    async function fetchData(){
-      document.getElementById('data_status').textContent = '데이터 로드 중...';
-      try {
-        let allItems = [];
-        let pageNo = 1;
-        let hasMore = true;
+    /* ═══════════ FILTER INIT ═══════════ */
+    function initFilters(){
+      // 시도 필터 초기화
+      const sidoSel = document.getElementById('sido_filter');
+      getAllSidos().forEach(sido => {
+        const opt = document.createElement('option');
+        opt.value = sido.code;
+        opt.textContent = sido.name;
+        sidoSel.appendChild(opt);
+      });
+      sidoSel.value = '6110000_ALL'; // 서울 기본값
+      updateSigunguFilter();
 
-        while(hasMore && pageNo <= 5) {
-          const url = `${API_URL}?serviceKey=${API_KEY}&numOfRows=100&pageNo=${pageNo}&type=json`;
-          const resp = await fetch(url);
-          const json = await resp.json();
+      // 영업상태 필터 기본값
+      document.getElementById('status_filter').value = '영업/정상';
+    }
 
-          if(json.response?.body?.items?.item) {
-            const items = Array.isArray(json.response.body.items.item)
-              ? json.response.body.items.item
-              : [json.response.body.items.item];
-            allItems = allItems.concat(items);
+    function updateSigunguFilter(){
+      const sidoCode = document.getElementById('sido_filter').value;
+      const sigunguSel = document.getElementById('sigungu_filter');
+      sigunguSel.innerHTML = '<option value="">전체</option>';
 
-            const total = parseInt(json.response.body.totalCount) || 0;
-            hasMore = allItems.length < total;
-            pageNo++;
-          } else {
-            hasMore = false;
-          }
-        }
-
-        allData = allItems;
-        buildFilters();
-        recalc();
-        document.getElementById('data_status').innerHTML = `✓ 업데이트: ${new Date().toLocaleDateString('ko-KR')}`;
-        toast(`${allData.length}개의 데이터 로드 완료`);
-      } catch(e) {
-        console.error(e);
-        document.getElementById('data_status').textContent = '❌ 로드 실패';
-        toast('데이터 로드 실패: ' + e.message);
+      if(sidoCode) {
+        const siggus = getSigunguList(sidoCode);
+        siggus.forEach(sg => {
+          const opt = document.createElement('option');
+          opt.value = sg.name;
+          opt.textContent = sg.name;
+          sigunguSel.appendChild(opt);
+        });
       }
     }
 
-    /* ═══════════ FILTERS ═══════════ */
-    function buildFilters(){
-      const regions = new Set();
-      const buildings = new Set();
+    /* ═══════════ DATA LOAD ═══════════ */
+    async function loadDataFromFile(){
+      try {
+        const resp = await fetch(DATA_FILE);
+        const json = await resp.json();
+        allData = json.items || [];
+        return true;
+      } catch(e) {
+        console.error(e);
+        toast('데이터 로드 실패: ' + e.message);
+        return false;
+      }
+    }
 
-      allData.forEach(item => {
-        regions.add(item.RGN_SE_NM || '알수없음');
-        buildings.add(item.BLDG_USG_NM || '');
-      });
+    /* ═══════════ FILTER (클라이언트 필터링) ═══════════ */
+    function filterDataByConditions(filters){
+      return allData.filter(item => {
+        // 시도 필터 (필수)
+        const itemSido = extractSidoFromAddress(item.ROAD_NM_ADDR || item.LOTNO_ADDR || '');
+        const itemSidoCode = getSidoCode(itemSido);
+        if(itemSidoCode !== filters.sidoCode) return false;
 
-      const regionSel = document.getElementById('region_filter');
-      const buildingSel = document.getElementById('building_filter');
+        // 시군구 필터
+        if(filters.sigunguName) {
+          const addr = item.ROAD_NM_ADDR || item.LOTNO_ADDR || '';
+          const parts = addr.split(' ');
+          const sigunguInAddr = parts[1] || '';
+          if(sigunguInAddr !== filters.sigunguName) return false;
+        }
 
-      Array.from(regions).sort().forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r;
-        opt.textContent = r;
-        regionSel.appendChild(opt);
-      });
+        // 영업상태 필터 (필수)
+        if(item.SALS_STTS_NM !== filters.statusName) return false;
 
-      Array.from(buildings).filter(b => b).sort().forEach(b => {
-        const opt = document.createElement('option');
-        opt.value = b;
-        opt.textContent = b;
-        buildingSel.appendChild(opt);
+        // 허가일자 범위
+        if(filters.permitFrom && item.LCPMT_YMD < filters.permitFrom) return false;
+        if(filters.permitTo && item.LCPMT_YMD > filters.permitTo) return false;
+
+        // 사업장명 부분일치
+        if(filters.businessName && !item.BPLC_NM.toLowerCase().includes(filters.businessName.toLowerCase())) return false;
+
+        return true;
       });
     }
 
+    /* ═══════════ SEARCH ═══════════ */
+    async function searchData(){
+      const sidoCode = document.getElementById('sido_filter').value;
+      const statusName = document.getElementById('status_filter').value;
+      const permitFrom = document.getElementById('permit_date_from').value;
+      const permitTo = document.getElementById('permit_date_to').value;
+      const businessName = document.getElementById('business_name_filter').value;
+
+      // 필수 필터 검증
+      if(!sidoCode) {
+        toast('시도를 선택해주세요');
+        return;
+      }
+      if(!statusName) {
+        toast('영업상태를 선택해주세요');
+        return;
+      }
+
+      toast('필터링 중...');
+
+      // 클라이언트 필터링
+      const filters = {
+        sidoCode: sidoCode,
+        sigunguName: document.getElementById('sigungu_filter').value,
+        statusName: statusName,
+        permitFrom: permitFrom,
+        permitTo: permitTo,
+        businessName: businessName
+      };
+
+      filteredData = filterDataByConditions(filters);
+      updateRegionChart();
+      toast('검색 완료');
+    }
+
+
     function resetFilters(){
-      document.getElementById('region_filter').value = '';
-      document.getElementById('status_filter').value = '';
-      document.getElementById('building_filter').value = '';
-      recalc();
+      document.getElementById('sido_filter').value = '6110000_ALL';
+      updateSigunguFilter();
+      document.getElementById('sigungu_filter').value = '';
+      document.getElementById('status_filter').value = '영업/정상';
+      document.getElementById('permit_date_from').value = '';
+      document.getElementById('permit_date_to').value = '';
+      document.getElementById('business_name_filter').value = '';
+      filteredData = [];
+      regionChart?.destroy?.();
       toast('필터 초기화됨');
     }
 
-    /* ═══════════ CALC ═══════════ */
-    function recalc(){
-      const region = document.getElementById('region_filter').value;
-      const status = document.getElementById('status_filter').value;
-      const building = document.getElementById('building_filter').value;
-
-      filteredData = allData.filter(item => {
-        if(region && item.RGN_SE_NM !== region) return false;
-        if(status && item.SALS_STTS_NM !== status) return false;
-        if(building && item.BLDG_USG_NM !== building) return false;
-        return true;
-      });
-
-      updateKPIs();
-      renderTable();
-      updateCharts();
-    }
-
-    function updateKPIs(){
-      const total = filteredData.length;
-      const active = filteredData.filter(d => d.SALS_STTS_NM === '영업/정상' || d.SALS_STTS_NM === '영업중').length;
-      const closed = total - active;
-      const regions = new Set(filteredData.map(d => d.RGN_SE_NM)).size;
-
-      document.getElementById('kpi_total').textContent = fmtN(total);
-      document.getElementById('kpi_active').textContent = fmtN(active);
-      document.getElementById('kpi_closed').textContent = fmtN(closed);
-      document.getElementById('kpi_regions').textContent = fmtN(regions);
-      document.getElementById('table_count').textContent = total + '개';
-    }
-
-    function renderTable(){
-      const tbody = document.getElementById('table_body');
-      tbody.innerHTML = '';
-
-      filteredData.slice(0, 500).forEach(item => {
-        const tr = document.createElement('tr');
-        const statusCls = (item.SALS_STTS_NM === '영업/정상' || item.SALS_STTS_NM === '영업중') ? 'status-open' : 'status-closed';
-        const statusTxt = item.SALS_STTS_NM || '-';
-        const statusCode = getBusinessStatusCode(statusTxt);
-        const statusDisplay = statusCode ? `${statusTxt} (${statusCode})` : statusTxt;
-
-        // 주소에서 시도 추출 및 코드 조회
-        const addr = item.ROAD_NM_ADDR || item.LOTNO_ADDR || '';
-        const sido = extractSidoFromAddress(addr);
-        const sidoCode = getSidoCode(sido);
-        const sidoDisplay = sido ? `${sido}${sidoCode ? ` (${sidoCode})` : ''}` : '-';
-
-        tr.innerHTML = `
-          <td><strong>${esc(item.BPLC_NM)}</strong></td>
-          <td class="addr-cell">${esc(addr || '-')}</td>
-          <td>${esc(sidoDisplay)}</td>
-          <td>${esc(item.BLDG_USG_NM || '-')}</td>
-          <td>${fmtN(item.GSRM_CNT || '-')}</td>
-          <td>${fmtN(item.FCLT_SCL || '-')}</td>
-          <td class="${statusCls}">${statusDisplay}</td>
-          <td>${item.LCPMT_YMD || '-'}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    /* ═══════════ CHARTS ═══════════ */
-    function updateCharts(){
-      updateRegionChart();
-      updateTrendChart();
-    }
-
+    /* ═══════════ CHART ═══════════ */
     function updateRegionChart(){
-      const regionMap = {};
+      // 시군구별로 분류 (주소의 2번째 단어)
+      const sigunguMap = {};
       filteredData.forEach(item => {
-        const r = item.RGN_SE_NM || '알수없음';
-        regionMap[r] = (regionMap[r] || 0) + 1;
+        const addr = item.ROAD_NM_ADDR || item.LOTNO_ADDR || '';
+        const parts = addr.split(' ');
+        const sigungu = parts[1] || '알수없음';
+        sigunguMap[sigungu] = (sigunguMap[sigungu] || 0) + 1;
       });
 
-      const labels = Object.keys(regionMap).sort((a, b) => regionMap[b] - regionMap[a]);
-      const data = labels.map(l => regionMap[l]);
+      // 개수 많은 순서대로 정렬
+      const labels = Object.keys(sigunguMap).sort((a, b) => sigunguMap[b] - sigunguMap[a]);
+      const data = labels.map(l => sigunguMap[l]);
 
       const ctx = document.getElementById('regionChart');
       if(regionChart) regionChart.destroy();
@@ -372,7 +306,7 @@
         data: {
           labels: labels,
           datasets: [{
-            label: '업장 수',
+            label: '정상 영업중 업장 수',
             data: data,
             backgroundColor: 'rgba(232, 101, 10, 0.7)',
             borderColor: '#e8650a',
@@ -390,85 +324,29 @@
       });
     }
 
-    function updateTrendChart(){
-      const yearMap = {};
-      filteredData.forEach(item => {
-        const ymd = item.LCPMT_YMD;
-        if(ymd) {
-          const year = ymd.substring(0, 4);
-          yearMap[year] = (yearMap[year] || 0) + 1;
-        }
-      });
-
-      const labels = Object.keys(yearMap).sort();
-      const data = labels.map(l => yearMap[l]);
-
-      const ctx = document.getElementById('trendChart');
-      if(trendChart) trendChart.destroy();
-      trendChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: '연도별 허가',
-            data: data,
-            borderColor: '#16a34a',
-            backgroundColor: 'rgba(22, 163, 74, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: true } },
-          scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1 } }
-          }
-        }
-      });
-    }
-
-    /* ═══════════ EXPORT ═══════════ */
-    function exportCSV(){
-      if(filteredData.length === 0) {
-        toast('내보낼 데이터가 없습니다');
-        return;
-      }
-
-      const headers = ['업장명', '주소', '지역', '건물용도', '객실수', '규모(㎡)', '영업상태', '허가일'];
-      const rows = filteredData.map(item => [
-        item.BPLC_NM || '',
-        item.ROAD_NM_ADDR || item.LOTNO_ADDR || '',
-        item.RGN_SE_NM || '',
-        item.BLDG_USG_NM || '',
-        item.GSRM_CNT || '',
-        item.FCLT_SCL || '',
-        item.SALS_STTS_NM || '',
-        item.LCPMT_YMD || ''
-      ]);
-
-      let csv = headers.join(',') + '\n';
-      rows.forEach(row => {
-        csv += row.map(cell => `"${cell}"`).join(',') + '\n';
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `외국인민박업_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast('CSV 다운로드 완료');
-    }
-
     /* ═══════════ INIT ═══════════ */
-    window.addEventListener('DOMContentLoaded', () => {
-      fetchData();
+    window.addEventListener('DOMContentLoaded', async () => {
+      initFilters();
+
+      // JSON 파일에서 데이터 로드
+      toast('데이터 로드 중...');
+      const loaded = await loadDataFromFile();
+
+      if(loaded) {
+        // 페이지 로드 시 기본값(서울 + 영업정상)으로 필터링
+        const filters = {
+          sidoCode: '6110000_ALL',  // 서울특별시 전체
+          sigunguName: '',          // 전체
+          statusName: '영업/정상',  // 영업/정상
+          permitFrom: '',
+          permitTo: '',
+          businessName: ''
+        };
+
+        filteredData = filterDataByConditions(filters);
+        updateRegionChart();
+        toast('준비 완료');
+      }
     });
   </script>
 </body>
