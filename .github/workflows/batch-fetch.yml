@@ -20,13 +20,6 @@ jobs:
         with:
           node-version: '18'
 
-      - name: 의존성 설치
-        run: npm install firebase-admin
-
-      - name: Firebase 키 생성
-        run: |
-          echo '${{ secrets.FIREBASE_KEY }}' > firebase-key.json
-
       - name: 배치 스크립트 실행
         run: node scripts/batch-fetch-homestay-data.js
 
