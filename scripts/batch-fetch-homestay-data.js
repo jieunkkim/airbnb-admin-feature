@@ -74,32 +74,52 @@ async function fetchAllData() {
 }
 
 /**
- * Firestore에 데이터 저장
+ * Firestore에 데이터 저장 (배치 단위로 나누어 저장)
  */
 async function saveDataToFirestore(data) {
   try {
-    const batch = db.batch();
     const collectionRef = db.collection('homestays');
+    const BATCH_SIZE = 400; // Firestore 배치당 최대 500개 작업, 안전하게 400개씩
 
     console.log('💾 Firestore 저장 시작...');
 
     // 기존 데이터 모두 삭제
     const snapshot = await collectionRef.get();
+    let deleteBatch = db.batch();
+    let deleteCount = 0;
+
     snapshot.forEach(doc => {
-      batch.delete(doc.ref);
+      deleteBatch.delete(doc.ref);
+      deleteCount++;
+
+      if (deleteCount % BATCH_SIZE === 0) {
+        // 배치 커밋하고 새 배치 시작
+        deleteBatch.commit();
+        deleteBatch = db.batch();
+      }
     });
 
-    console.log(`   기존 ${snapshot.size}개 항목 삭제`);
+    if (deleteCount % BATCH_SIZE > 0) {
+      await deleteBatch.commit();
+    }
 
-    // 새 데이터 추가
-    data.forEach((item, index) => {
-      // 문서 ID: API에서 제공하는 고유 ID 또는 인덱스
-      const docId = item.MGMD_ID || `item_${index}`;
-      const docRef = collectionRef.doc(docId);
-      batch.set(docRef, item);
-    });
+    console.log(`   기존 ${snapshot.size}개 항목 삭제 완료`);
 
-    await batch.commit();
+    // 새 데이터 추가 (배치 단위로 나누어 저장)
+    for (let i = 0; i < data.length; i += BATCH_SIZE) {
+      const chunk = data.slice(i, i + BATCH_SIZE);
+      let writeBatch = db.batch();
+
+      chunk.forEach((item, chunkIndex) => {
+        const docId = item.MGMD_ID || `item_${i + chunkIndex}`;
+        const docRef = collectionRef.doc(docId);
+        writeBatch.set(docRef, item);
+      });
+
+      await writeBatch.commit();
+      console.log(`   ✓ ${Math.min(i + BATCH_SIZE, data.length)}/${data.length} 저장 완료`);
+    }
+
     console.log(`✅ Firestore 저장 완료: ${data.length}개 항목\n`);
 
     // 메타데이터(마지막 업데이트 시간) 저장
