@@ -1,0 +1,39 @@
+name: 외국인 도시 민박업 데이터 배치 수집
+
+on:
+  schedule:
+    # 매일 새벽 2시(KST)에 실행 (UTC 17시)
+    - cron: '0 17 * * *'
+  # 수동 트리거도 가능
+  workflow_dispatch:
+
+jobs:
+  fetch-homestay-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v3
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: 의존성 설치
+        run: npm install firebase-admin
+
+      - name: Firebase 키 생성
+        run: |
+          echo '${{ secrets.FIREBASE_KEY }}' > firebase-key.json
+
+      - name: 배치 스크립트 실행
+        run: node scripts/batch-fetch-homestay-data.js
+
+      - name: 완료 알림
+        if: success()
+        run: echo "✅ 배치 작업 성공적으로 완료됨"
+
+      - name: 오류 알림
+        if: failure()
+        run: echo "❌ 배치 작업 실패"
