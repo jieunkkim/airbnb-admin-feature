@@ -19,19 +19,22 @@ const API_KEY = '13975442ce0832bbf042aab5064909e38fb717167213168ca3b81d484b7662d
 const API_URL = 'https://apis.data.go.kr/1741000/foreigner_city_homestays/info';
 
 /**
- * 필요한 필드만 추출
+ * 필요한 필드만 추출 (필수 필드 없으면 null 반환)
  */
 function extractRequiredFields(item) {
+  if (!item.MGMD_ID) {
+    return null;
+  }
   return {
     MGMD_ID: item.MGMD_ID,
-    BPLC_NM: item.BPLC_NM,
-    ROAD_NM_ADDR: item.ROAD_NM_ADDR,
-    LOTNO_ADDR: item.LOTNO_ADDR,
-    SALS_STTS_NM: item.SALS_STTS_NM,
-    LCPMT_YMD: item.LCPMT_YMD,
-    BLDG_USG_NM: item.BLDG_USG_NM,
-    GSRM_CNT: item.GSRM_CNT,
-    FCLT_SCL: item.FCLT_SCL
+    BPLC_NM: item.BPLC_NM || '',
+    ROAD_NM_ADDR: item.ROAD_NM_ADDR || '',
+    LOTNO_ADDR: item.LOTNO_ADDR || '',
+    SALS_STTS_NM: item.SALS_STTS_NM || '',
+    LCPMT_YMD: item.LCPMT_YMD || '',
+    BLDG_USG_NM: item.BLDG_USG_NM || '',
+    GSRM_CNT: item.GSRM_CNT || 0,
+    FCLT_SCL: item.FCLT_SCL || ''
   };
 }
 
@@ -66,8 +69,8 @@ async function fetchAllData() {
           ? json.response.body.items.item
           : [json.response.body.items.item];
 
-        // 필요한 필드만 추출
-        const filteredItems = items.map(extractRequiredFields);
+        // 필요한 필드만 추출 및 필수 필드 없는 항목 필터링
+        const filteredItems = items.map(extractRequiredFields).filter(item => item !== null);
         allItems = allItems.concat(filteredItems);
 
         totalCount = parseInt(json.response.body.totalCount) || 0;
