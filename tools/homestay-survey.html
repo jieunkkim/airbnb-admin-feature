@@ -88,6 +88,7 @@
       <div>
         <h1 class="pg-title">외국인 도시 <span>민박업 현황</span><span class="ver-badge">v2 · 2026-05-03</span></h1>
         <p class="pg-sub">공공데이터 기반 전국 외국인 관광 도시 민박업 허가 업장 현황 조회</p>
+        <p class="pg-sub" style="font-size: 12px; color: var(--t3); margin-top: 8px;">📅 최근 업데이트: <span id="last_update">로딩 중...</span></p>
       </div>
     </div>
 
@@ -292,6 +293,31 @@
         console.error(e);
         toast('데이터 로드 실패: ' + e.message);
         return false;
+      }
+    }
+
+    /* ═══════════ METADATA ═══════════ */
+    async function loadLastUpdateTime(){
+      try {
+        const doc = await db.collection('metadata').doc('lastUpdate').get();
+        if(doc.exists) {
+          const data = doc.data();
+          const lastUpdated = new Date(data.lastUpdated);
+          const formatted = lastUpdated.toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          });
+          document.getElementById('last_update').textContent = formatted;
+        } else {
+          document.getElementById('last_update').textContent = '데이터 없음';
+        }
+      } catch(e) {
+        console.error(e);
+        document.getElementById('last_update').textContent = '로드 실패';
       }
     }
 
@@ -579,22 +605,13 @@
     /* ═══════════ INIT ═══════════ */
     window.addEventListener('DOMContentLoaded', async () => {
       initFilters();
+      loadLastUpdateTime();
 
-      // JSON 파일에서 데이터 로드
+      // Firestore에서 데이터 로드
       toast('데이터 로드 중...');
       const loaded = await loadDataFromFile();
 
       if(loaded) {
-        // 페이지 로드 시 기본값(서울 + 영업정상)으로 필터링
-        const filters = {
-          sidoCode: '6110000_ALL',  // 서울특별시 전체
-          sigunguName: '',          // 전체
-          statusName: '영업/정상',  // 영업/정상
-          permitFrom: '',
-          permitTo: '',
-          businessName: ''
-        };
-
         const initialFilters = {
           sidoCode: '6110000_ALL',  // 서울특별시 전체
           sigunguName: '',          // 전체

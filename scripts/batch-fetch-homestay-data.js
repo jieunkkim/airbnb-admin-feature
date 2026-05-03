@@ -101,6 +101,14 @@ async function saveDataToFirestore(data) {
 
     await batch.commit();
     console.log(`✅ Firestore 저장 완료: ${data.length}개 항목\n`);
+
+    // 메타데이터(마지막 업데이트 시간) 저장
+    const metadataRef = db.collection('metadata').doc('lastUpdate');
+    await metadataRef.set({
+      lastUpdated: new Date().toISOString(),
+      itemCount: data.length
+    });
+    console.log('✅ 메타데이터 저장 완료');
   } catch (error) {
     console.error(`❌ Firestore 저장 오류:`, error.message);
     throw error;
