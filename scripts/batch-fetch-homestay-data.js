@@ -138,13 +138,13 @@ async function saveDataToFirestore(data) {
       }
     }
 
-    // 2️⃣ 새 데이터를 임시 컬렉션에 저장 (스트리밍)
+    // 2️⃣ 새 데이터를 임시 컬렉션에 저장 (스트리밍) - 순차 ID 사용
     for (let i = 0; i < data.length; i += BATCH_SIZE) {
       const chunk = data.slice(i, i + BATCH_SIZE);
       let writeBatch = db.batch();
 
       chunk.forEach((item, chunkIndex) => {
-        const docId = item.MGMD_ID || `item_${i + chunkIndex}`;
+        const docId = `item_${String(i + chunkIndex + 1).padStart(5, '0')}`;
         const docRef = tempCollectionRef.doc(docId);
         writeBatch.set(docRef, item);
       });
@@ -156,7 +156,10 @@ async function saveDataToFirestore(data) {
 
     console.log('✅ 임시 컬렉션 저장 완료');
 
-    // 3️⃣ 기존 컬렉션 삭제
+    // 3️⃣ 기존 컬렉션 삭제 (전환 전 임시 컬렉션 실제 개수 확인)
+    const actualTempCount = await tempCollectionRef.get();
+    console.log(`\n📊 임시 컬렉션 실제 저장 개수: ${actualTempCount.size}개\n`);
+
     console.log('🗑️  기존 데이터 삭제 시작...');
     const mainSnapshot = await mainCollectionRef.get();
     let deleteBatch = db.batch();
