@@ -345,7 +345,7 @@
 
       filteredData = filterDataByConditions(filters);
       currentPage = 1;  // 페이지 초기화
-      updateRegionChart();
+      updateRegionChart(statusName);
       renderTable();
       toast('검색 완료');
     }
@@ -493,7 +493,7 @@
     }
 
     /* ═══════════ CHART ═══════════ */
-    function updateRegionChart(){
+    function updateRegionChart(statusName){
       // 시군구별로 분류 (주소의 2번째 단어)
       const sigunguMap = {};
       filteredData.forEach(item => {
@@ -507,6 +507,9 @@
       const labels = Object.keys(sigunguMap).sort((a, b) => sigunguMap[b] - sigunguMap[a]);
       const data = labels.map(l => sigunguMap[l]);
 
+      // 영업상태에 따른 차트 레이블 생성
+      const chartLabel = statusName ? `${statusName} 업장 수` : '업장 수';
+
       const ctx = document.getElementById('regionChart');
       if(regionChart) regionChart.destroy();
       regionChart = new Chart(ctx, {
@@ -514,7 +517,7 @@
         data: {
           labels: labels,
           datasets: [{
-            label: '정상 영업중 업장 수',
+            label: chartLabel,
             data: data,
             backgroundColor: 'rgba(232, 101, 10, 0.7)',
             borderColor: '#e8650a',
@@ -562,7 +565,7 @@
 
         filteredData = filterDataByConditions(initialFilters);
         currentPage = 1;
-        updateRegionChart();
+        updateRegionChart('영업/정상');
         renderTable();
         toast('준비 완료');
       }
