@@ -5,6 +5,9 @@
 # Local development
 .claude/settings.local.json
 
+# Firebase credentials (never commit)
+firebase-key.json
+
 # Temporary files
 test-data/
 tools/Untitled

@@ -1,22 +1,22 @@
 /**
  * 배치: 공공데이터포털 외국인 도시 민박업 전체 데이터 수집
- * 용도: 매일 아침 실행해서 전체 데이터를 JSON으로 저장
+ * 용도: 매일 아침 실행해서 Firestore에 저장
  *
  * 실행: node scripts/batch-fetch-homestay-data.js
  */
 
-const fs = require('fs');
-const path = require('path');
+const admin = require('firebase-admin');
+const serviceAccount = require('../firebase-key.json');
+
+// Firebase 초기화
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+const db = admin.firestore();
 
 const API_KEY = '13975442ce0832bbf042aab5064909e38fb717167213168ca3b81d484b7662d1';
 const API_URL = 'https://apis.data.go.kr/1741000/foreigner_city_homestays/info';
-const OUTPUT_FILE = path.join(__dirname, '../data/homestay-data.json');
-
-// data 폴더 없으면 생성
-const dataDir = path.dirname(OUTPUT_FILE);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
 
 /**
  * 모든 데이터를 페이징으로 가져오기
@@ -74,23 +74,36 @@ async function fetchAllData() {
 }
 
 /**
- * 데이터를 JSON으로 저장
+ * Firestore에 데이터 저장
  */
-async function saveData(data) {
+async function saveDataToFirestore(data) {
   try {
-    // 타임스탬프 추가
-    const output = {
-      lastUpdated: new Date().toISOString(),
-      totalCount: data.length,
-      items: data
-    };
+    const batch = db.batch();
+    const collectionRef = db.collection('homestays');
 
-    fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2), 'utf-8');
-    console.log(`💾 저장 완료: ${OUTPUT_FILE}`);
-    console.log(`   파일 크기: ${(fs.statSync(OUTPUT_FILE).size / 1024 / 1024).toFixed(2)} MB\n`);
+    console.log('💾 Firestore 저장 시작...');
+
+    // 기존 데이터 모두 삭제
+    const snapshot = await collectionRef.get();
+    snapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    console.log(`   기존 ${snapshot.size}개 항목 삭제`);
+
+    // 새 데이터 추가
+    data.forEach((item, index) => {
+      // 문서 ID: API에서 제공하는 고유 ID 또는 인덱스
+      const docId = item.MGMD_ID || `item_${index}`;
+      const docRef = collectionRef.doc(docId);
+      batch.set(docRef, item);
+    });
+
+    await batch.commit();
+    console.log(`✅ Firestore 저장 완료: ${data.length}개 항목\n`);
   } catch (error) {
-    console.error(`❌ 저장 오류: ${error.message}`);
-    process.exit(1);
+    console.error(`❌ Firestore 저장 오류:`, error.message);
+    throw error;
   }
 }
 
@@ -102,15 +115,19 @@ async function main() {
   console.log('🏠 외국인 도시 민박업 데이터 배치 수집');
   console.log('═════════════════════════════════════════════\n');
 
-  const data = await fetchAllData();
-  await saveData(data);
+  try {
+    const data = await fetchAllData();
+    await saveDataToFirestore(data);
 
-  console.log('═════════════════════════════════════════════');
-  console.log('✨ 배치 작업 완료!');
-  console.log('═════════════════════════════════════════════');
+    console.log('═════════════════════════════════════════════');
+    console.log('✨ 배치 작업 완료!');
+    console.log('═════════════════════════════════════════════');
+  } catch (error) {
+    console.error('❌ 배치 작업 실패:', error);
+    process.exit(1);
+  } finally {
+    await admin.app().delete();
+  }
 }
 
-main().catch(error => {
-  console.error('❌ 배치 작업 실패:', error);
-  process.exit(1);
-});
+main();
