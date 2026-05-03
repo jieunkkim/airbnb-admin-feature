@@ -28,7 +28,9 @@
     .btn-reset:hover { background: var(--s3); border-color: var(--b1); }
 
     /* ── CHART CONTAINER ── */
-    .chart-container { position: relative; height: 300px; margin: 20px 0; padding: 16px; background: var(--s1); border: 1px solid var(--b1); border-radius: var(--r12); }
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .chart-container { position: relative; height: 300px; padding: 16px; background: var(--s1); border: 1px solid var(--b1); border-radius: var(--r12); }
+    .chart-title { font-size: 13px; font-weight: 600; color: var(--t1); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* ── TABLE ── */
     .table-wrapper { margin-top: 20px; }
@@ -62,7 +64,7 @@
     .pagination button.active { background: var(--ac); color: #fff; border-color: var(--ac); }
     .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    @media(max-width: 1024px) { .filter-row { grid-template-columns: 1fr 1fr; } .filter-date-range { grid-column: 1 / -1; } }
+    @media(max-width: 1024px) { .filter-row { grid-template-columns: 1fr 1fr; } .filter-date-range { grid-column: 1 / -1; } .chart-grid { grid-template-columns: 1fr; } }
     @media(max-width: 860px) { .hdr { flex-direction: column; align-items: flex-start; } .filter-row { grid-template-columns: 1fr; } }
     @media(max-width: 480px) { .wrap { padding: 20px 10px 60px; } .chart-container { height: 250px; } .filter-date-range { flex-direction: column; } }
 
@@ -154,8 +156,19 @@
         <span class="card-ttl">지역별 업장 분포</span>
       </div>
       <div class="card-body">
-        <div class="chart-container">
-          <canvas id="regionChart"></canvas>
+        <div class="chart-grid">
+          <div>
+            <div class="chart-title">정상영업</div>
+            <div class="chart-container">
+              <canvas id="regionChartOpen"></canvas>
+            </div>
+          </div>
+          <div>
+            <div class="chart-title">폐업</div>
+            <div class="chart-container">
+              <canvas id="regionChartClosed"></canvas>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -211,7 +224,8 @@
 
     let allData = [];
     let filteredData = [];
-    let regionChart = null;
+    let regionChartOpen = null;
+    let regionChartClosed = null;
 
     // 페이징 관련
     const ITEMS_PER_PAGE = 20;
@@ -361,7 +375,8 @@
       document.getElementById('search_keyword').value = '';
       filteredData = [];
       currentPage = 1;
-      regionChart?.destroy?.();
+      regionChartOpen?.destroy?.();
+      regionChartClosed?.destroy?.();
       document.getElementById('table_body').innerHTML = '';
       document.getElementById('pagination').innerHTML = '';
       document.getElementById('table_count').textContent = '0개';
@@ -494,70 +509,87 @@
 
     /* ═══════════ CHART ═══════════ */
     function updateRegionChart(sidoCode){
-      // 선택된 시도 내의 전체 데이터에서 정상영업과 폐업만 필터링
-      const cleanSidoCode = sidoCode.replace(/_ALL$/, '');
+      // 선택된 시도 내의 전체 데이터 필터링
       const sidoData = allData.filter(item => {
         const itemSido = extractSidoFromAddress(item.ROAD_NM_ADDR || item.LOTNO_ADDR || '');
         const itemSidoCode = getSidoCode(itemSido);
         return itemSidoCode === sidoCode;
       });
 
-      // 시군구별 정상영업/폐업 분류
-      const sigunguMap = {};
-      sidoData.forEach(item => {
-        const addr = item.ROAD_NM_ADDR || item.LOTNO_ADDR || '';
-        const parts = addr.split(' ');
-        const sigungu = parts[1] || '알수없음';
+      // 정상영업 데이터 추출
+      const openData = sidoData.filter(item => item.SALS_STTS_NM === '영업/정상');
+      // 폐업 데이터 추출
+      const closedData = sidoData.filter(item => item.SALS_STTS_NM === '폐업');
 
-        if(!sigunguMap[sigungu]) {
-          sigunguMap[sigungu] = { open: 0, closed: 0 };
-        }
+      // 각각 시군구별로 분류
+      const getDistributionMap = (data) => {
+        const map = {};
+        data.forEach(item => {
+          const addr = item.ROAD_NM_ADDR || item.LOTNO_ADDR || '';
+          const parts = addr.split(' ');
+          const sigungu = parts[1] || '알수없음';
+          map[sigungu] = (map[sigungu] || 0) + 1;
+        });
+        return map;
+      };
 
-        if(item.SALS_STTS_NM === '폐업') {
-          sigunguMap[sigungu].closed++;
-        } else {
-          sigunguMap[sigungu].open++;
-        }
-      });
+      const openMap = getDistributionMap(openData);
+      const closedMap = getDistributionMap(closedData);
 
-      // 개수 많은 순서대로 정렬 (정상영업 + 폐업 합계 기준)
-      const labels = Object.keys(sigunguMap).sort((a, b) =>
-        (sigunguMap[b].open + sigunguMap[b].closed) - (sigunguMap[a].open + sigunguMap[a].closed)
+      // 모든 지역명 수집 후 정렬 (합계 기준)
+      const allLabels = new Set([...Object.keys(openMap), ...Object.keys(closedMap)]);
+      const labels = Array.from(allLabels).sort((a, b) =>
+        (closedMap[b] || 0 + openMap[b] || 0) - (closedMap[a] || 0 + openMap[a] || 0)
       );
-      const openData = labels.map(l => sigunguMap[l].open);
-      const closedData = labels.map(l => sigunguMap[l].closed);
+      const openChartData = labels.map(l => openMap[l] || 0);
+      const closedChartData = labels.map(l => closedMap[l] || 0);
 
-      const ctx = document.getElementById('regionChart');
-      if(regionChart) regionChart.destroy();
-      regionChart = new Chart(ctx, {
+      // 정상영업 차트
+      const ctxOpen = document.getElementById('regionChartOpen');
+      if(regionChartOpen) regionChartOpen.destroy();
+      regionChartOpen = new Chart(ctxOpen, {
         type: 'bar',
         data: {
           labels: labels,
-          datasets: [
-            {
-              label: '정상영업',
-              data: openData,
-              backgroundColor: 'rgba(22, 163, 74, 0.7)',
-              borderColor: '#16a34a',
-              borderWidth: 1
-            },
-            {
-              label: '폐업',
-              data: closedData,
-              backgroundColor: 'rgba(220, 38, 38, 0.7)',
-              borderColor: '#dc2626',
-              borderWidth: 1
-            }
-          ]
+          datasets: [{
+            label: '정상영업',
+            data: openChartData,
+            backgroundColor: 'rgba(22, 163, 74, 0.7)',
+            borderColor: '#16a34a',
+            borderWidth: 1
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          indexAxis: 'y',
-          plugins: { legend: { position: 'bottom' } },
+          plugins: { legend: { display: false } },
           scales: {
-            x: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } },
-            y: { stacked: true }
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          }
+        }
+      });
+
+      // 폐업 차트
+      const ctxClosed = document.getElementById('regionChartClosed');
+      if(regionChartClosed) regionChartClosed.destroy();
+      regionChartClosed = new Chart(ctxClosed, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '폐업',
+            data: closedChartData,
+            backgroundColor: 'rgba(220, 38, 38, 0.7)',
+            borderColor: '#dc2626',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
           }
         }
       });
