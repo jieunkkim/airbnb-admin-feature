@@ -324,8 +324,8 @@
           if(sigunguInAddr !== filters.sigunguName) return false;
         }
 
-        // 영업상태 필터 (필수)
-        if(item.SALS_STTS_NM !== filters.statusName) return false;
+        // 영업상태 필터 (필수) - 코드값으로 비교
+        if(item.SALS_STTS_CD !== filters.statusCode) return false;
 
         // 허가일자 범위
         if(filters.permitFrom && item.LCPMT_YMD < filters.permitFrom) return false;
@@ -359,11 +359,11 @@
 
       toast('필터링 중...');
 
-      // 클라이언트 필터링
+      // 클라이언트 필터링 (코드값으로 필터링)
       const filters = {
         sidoCode: sidoCode,
         sigunguName: document.getElementById('sigungu_filter').value,
-        statusName: statusName,
+        statusCode: statusName,  // select value는 코드값
         permitFrom: permitFrom,
         permitTo: permitTo,
         searchKeyword: searchKeyword
@@ -599,14 +599,21 @@
       const loaded = await loadDataFromFile();
 
       if(loaded) {
+        // 데이터에서 unique한 영업상태 코드 추출
+        const uniqueStatusCodes = [...new Set(allData.map(item => item.SALS_STTS_CD).filter(Boolean))];
+        const firstStatusCode = uniqueStatusCodes[0] || '';
+
         const initialFilters = {
-          sidoCode: '6110000_ALL',  // 서울특별시 전체
-          sigunguName: '',          // 전체
-          statusName: '영업/정상',  // 영업/정상
+          sidoCode: '6110000_ALL',
+          sigunguName: '',
+          statusCode: firstStatusCode,  // 코드값으로 필터링
           permitFrom: '',
           permitTo: '',
           searchKeyword: ''
         };
+
+        console.log('📊 데이터에 있는 영업상태 코드:', uniqueStatusCodes);
+        console.log('🔍 초기 필터 코드:', firstStatusCode);
 
         filteredData = filterDataByConditions(initialFilters);
         currentPage = 1;

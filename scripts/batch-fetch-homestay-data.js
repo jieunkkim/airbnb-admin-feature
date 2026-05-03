@@ -23,6 +23,7 @@ function extractRequiredFields(item) {
     BPLC_NM: item.BPLC_NM || '',
     ROAD_NM_ADDR: item.ROAD_NM_ADDR || '',
     LOTNO_ADDR: item.LOTNO_ADDR || '',
+    SALS_STTS_CD: item.DTL_SALS_STTS_CD || '',
     SALS_STTS_NM: item.DTL_SALS_STTS_NM || '',
     LCPMT_YMD: item.LCPMT_YMD || '',
     BLDG_USG_NM: item.BLDG_USG_NM || '',
