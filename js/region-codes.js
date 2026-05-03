@@ -338,11 +338,12 @@ function getSidoCode(sidoName) {
 
 /**
  * 시도 코드로 시군구 목록 조회
- * @param {string} sidoCode - 시도 코드
+ * @param {string} sidoCode - 시도 코드 ('6110000_ALL' 또는 '6110000' 형식 모두 지원)
  * @returns {Array} 시군구 배열 [{name, code}, ...]
  */
 function getSigunguList(sidoCode) {
-  return SIGUNGU_CODES[sidoCode] || [];
+  const cleanCode = sidoCode.replace(/_ALL$/, '');
+  return SIGUNGU_CODES[cleanCode] || [];
 }
 
 /**

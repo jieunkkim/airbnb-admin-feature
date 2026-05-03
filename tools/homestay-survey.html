@@ -11,12 +11,13 @@
   <style>
     /* ── FILTER SECTION ── */
     .filter-section { background: var(--s1); border: 1px solid var(--b1); border-radius: var(--r12); padding: 20px; margin-bottom: 20px; }
-    .filter-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .filter-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .filter-date-range { grid-column: 3 / 5; }
     .filter-group { display: flex; flex-direction: column; gap: 6px; }
     .filter-group label { font-size: 12px; font-weight: 600; color: var(--t2); text-transform: uppercase; letter-spacing: 0.5px; }
     .filter-group select, .filter-group input { padding: 10px; border: 1px solid var(--b2); border-radius: var(--r4); font-size: 13px; font-family: 'DM Sans', sans-serif; transition: border-color 0.15s; }
     .filter-group select:focus, .filter-group input:focus { border-color: var(--ac); outline: none; box-shadow: 0 0 0 3px var(--acg); }
-    .filter-date-range { display: flex; gap: 8px; align-items: flex-end; }
+    .filter-date-range { display: flex; gap: 8px; align-items: flex-end; grid-column: 3 / 5; }
     .filter-date-range .filter-group { flex: 1; }
     .filter-date-range span { color: var(--t3); font-weight: 600; padding-bottom: 9px; }
 
@@ -29,6 +30,39 @@
     /* ── CHART CONTAINER ── */
     .chart-container { position: relative; height: 300px; margin: 20px 0; padding: 16px; background: var(--s1); border: 1px solid var(--b1); border-radius: var(--r12); }
 
+    /* ── TABLE ── */
+    .table-wrapper { margin-top: 20px; }
+    .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .table-header h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--t1); text-transform: uppercase; letter-spacing: 0.5px; }
+    .table-scroll { overflow-x: auto; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+    table col:nth-child(1) { width: 20%; }
+    table col:nth-child(2) { width: 40%; }
+    table col:nth-child(3) { width: 10%; }
+    table col:nth-child(4) { width: 10%; }
+    table col:nth-child(5) { width: 5%; }
+    table col:nth-child(6) { width: 5%; }
+    table col:nth-child(7) { width: 10%; }
+    table col:nth-child(8) { width: 10%; }
+    thead { background: var(--s2); border-bottom: 1px solid var(--b1); }
+    thead th { padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: var(--t2); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    thead th:first-child { text-align: left; }
+    tbody td { padding: 12px; border-bottom: 1px solid var(--b1); font-size: 13px; color: var(--t1); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    tbody td:first-child { text-align: left; }
+    tbody td:nth-child(2) { text-align: left; white-space: normal; }
+    tbody tr:hover { background: rgba(232, 101, 10, 0.02); }
+    .addr-cell { font-size: 12px; color: var(--t3); line-height: 1.4; }
+    .status-open { color: var(--gr); font-weight: 600; }
+    .status-closed { color: var(--rd); font-weight: 600; }
+
+    /* ── PAGINATION ── */
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 4px; margin-top: 16px; }
+    .pagination button { padding: 8px 12px; border: 1px solid var(--b2); background: var(--s1); color: var(--t1); border-radius: var(--r4); cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; }
+    .pagination button:hover { border-color: var(--ac); color: var(--ac); }
+    .pagination button.active { background: var(--ac); color: #fff; border-color: var(--ac); }
+    .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    @media(max-width: 1024px) { .filter-row { grid-template-columns: 1fr 1fr; } .filter-date-range { grid-column: 1 / -1; } }
     @media(max-width: 860px) { .hdr { flex-direction: column; align-items: flex-start; } .filter-row { grid-template-columns: 1fr; } }
     @media(max-width: 480px) { .wrap { padding: 20px 10px 60px; } .chart-container { height: 250px; } .filter-date-range { flex-direction: column; } }
 
@@ -76,12 +110,12 @@
           </select>
         </div>
         <div class="filter-date-range">
-          <div class="filter-group" style="flex: 1;">
+          <div class="filter-group">
             <label>인허가일자</label>
             <input type="date" id="permit_date_from">
           </div>
           <span>~</span>
-          <div class="filter-group" style="flex: 1;">
+          <div class="filter-group">
             <label></label>
             <input type="date" id="permit_date_to">
           </div>
@@ -128,6 +162,47 @@
       </div>
     </div>
 
+    <!-- TABLE: 숙소 목록 -->
+    <div class="card fuv d3">
+      <div class="card-hdr">
+        <div class="card-ico" style="background: rgba(217, 119, 6, 0.1);">📋</div>
+        <span class="card-ttl">숙소 목록</span>
+        <span style="font-size: 12px; color: var(--t3); font-weight: 500; margin-left: auto;" id="table_count">0개</span>
+      </div>
+      <div class="card-body">
+        <div class="table-scroll">
+          <table>
+            <colgroup>
+              <col style="width: 20%;">
+              <col style="width: 40%;">
+              <col style="width: 8%;">
+              <col style="width: 8%;">
+              <col style="width: 10%;">
+              <col style="width: 5%;">
+              <col style="width: 5%;">
+              <col style="width: 10%;">
+              <col style="width: 10%;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>사업장명</th>
+                <th>주소</th>
+                <th>지역</th>
+                <th>세부지역</th>
+                <th>건물용도</th>
+                <th>객실수</th>
+                <th>규모(㎡)</th>
+                <th>영업상태</th>
+                <th>허가일</th>
+              </tr>
+            </thead>
+            <tbody id="table_body"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+
   </div>
 
   <div id="toast"></div>
@@ -139,6 +214,10 @@
     let allData = [];
     let filteredData = [];
     let regionChart = null;
+
+    // 페이징 관련
+    const ITEMS_PER_PAGE = 20;
+    let currentPage = 1;
 
     /* ═══════════ UTILS ═══════════ */
     function esc(str){
@@ -266,7 +345,9 @@
       };
 
       filteredData = filterDataByConditions(filters);
+      currentPage = 1;  // 페이지 초기화
       updateRegionChart();
+      renderTable();
       toast('검색 완료');
     }
 
@@ -280,8 +361,136 @@
       document.getElementById('permit_date_to').value = '';
       document.getElementById('business_name_filter').value = '';
       filteredData = [];
+      currentPage = 1;
       regionChart?.destroy?.();
+      document.getElementById('table_body').innerHTML = '';
+      document.getElementById('pagination').innerHTML = '';
+      document.getElementById('table_count').textContent = '0개';
       toast('필터 초기화됨');
+    }
+
+    /* ═══════════ TABLE & PAGINATION ═══════════ */
+    function renderTable(){
+      const tbody = document.getElementById('table_body');
+      tbody.innerHTML = '';
+
+      const start = (currentPage - 1) * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+      const pageData = filteredData.slice(start, end);
+
+      pageData.forEach(item => {
+        const tr = document.createElement('tr');
+        const statusCls = item.SALS_STTS_NM === '영업/정상' ? 'status-open' : 'status-closed';
+        const statusDisplay = item.SALS_STTS_NM || '-';
+
+        const addr = item.ROAD_NM_ADDR || item.LOTNO_ADDR || '';
+        const sido = extractSidoFromAddress(addr);
+        const parts = addr.split(' ');
+        const sigungu = parts[1] || '-';
+        const bldgUsg = (item.BLDG_USG_NM || '-').split('(')[0].trim();
+
+        tr.innerHTML = `
+          <td><strong>${esc(item.BPLC_NM)}</strong></td>
+          <td class="addr-cell">${esc(addr)}</td>
+          <td>${esc(sido || '-')}</td>
+          <td>${esc(sigungu)}</td>
+          <td>${esc(bldgUsg)}</td>
+          <td>${fmtN(item.GSRM_CNT || '-')}</td>
+          <td>${fmtN(item.FCLT_SCL || '-')}</td>
+          <td class="${statusCls}">${statusDisplay}</td>
+          <td>${item.LCPMT_YMD || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      updatePagination();
+    }
+
+    function updatePagination(){
+      const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
+      const paginationEl = document.getElementById('pagination');
+      paginationEl.innerHTML = '';
+
+      // 이전 버튼
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = '< 이전';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => {
+        if(currentPage > 1) {
+          currentPage--;
+          renderTable();
+          window.scrollTo(0, 0);
+        }
+      };
+      paginationEl.appendChild(prevBtn);
+
+      // 페이지 번호
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, currentPage + 2);
+
+      if(startPage > 1) {
+        const firstBtn = document.createElement('button');
+        firstBtn.textContent = '1';
+        firstBtn.onclick = () => {
+          currentPage = 1;
+          renderTable();
+          window.scrollTo(0, 0);
+        };
+        paginationEl.appendChild(firstBtn);
+
+        if(startPage > 2) {
+          const dots = document.createElement('span');
+          dots.textContent = '...';
+          dots.style.padding = '0 4px';
+          paginationEl.appendChild(dots);
+        }
+      }
+
+      for(let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.textContent = i;
+        pageBtn.classList.toggle('active', i === currentPage);
+        pageBtn.onclick = () => {
+          currentPage = i;
+          renderTable();
+          window.scrollTo(0, 0);
+        };
+        paginationEl.appendChild(pageBtn);
+      }
+
+      if(endPage < totalPages) {
+        if(endPage < totalPages - 1) {
+          const dots = document.createElement('span');
+          dots.textContent = '...';
+          dots.style.padding = '0 4px';
+          paginationEl.appendChild(dots);
+        }
+
+        const lastBtn = document.createElement('button');
+        lastBtn.textContent = totalPages;
+        lastBtn.onclick = () => {
+          currentPage = totalPages;
+          renderTable();
+          window.scrollTo(0, 0);
+        };
+        paginationEl.appendChild(lastBtn);
+      }
+
+      // 다음 버튼
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = '다음 >';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => {
+        if(currentPage < totalPages) {
+          currentPage++;
+          renderTable();
+          window.scrollTo(0, 0);
+        }
+      };
+      paginationEl.appendChild(nextBtn);
+
+      // 개수 표시
+      document.getElementById('table_count').textContent = `${filteredData.length}개`;
     }
 
     /* ═══════════ CHART ═══════════ */
@@ -344,7 +553,9 @@
         };
 
         filteredData = filterDataByConditions(filters);
+        currentPage = 1;
         updateRegionChart();
+        renderTable();
         toast('준비 완료');
       }
     });
