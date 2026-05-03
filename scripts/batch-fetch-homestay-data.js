@@ -93,26 +93,65 @@ async function fetchAllData() {
 }
 
 /**
- * Firestore에 데이터 저장 (배치 단위로 나누어 저장)
+ * 임시 컬렉션에 데이터 저장 (스트리밍 방식)
  */
 async function saveDataToFirestore(data) {
+  const tempCollectionRef = db.collection('homestays_temp');
+  const mainCollectionRef = db.collection('homestays');
+  const BATCH_SIZE = 100;
+
   try {
-    const collectionRef = db.collection('homestays');
-    const BATCH_SIZE = 200; // 더 작은 청크로 나누어 저장
+    console.log('💾 임시 컬렉션에 데이터 저장 시작...');
 
-    console.log('💾 Firestore 저장 시작...');
+    // 1️⃣ 기존 임시 컬렉션 정리 (있다면)
+    const tempSnapshot = await tempCollectionRef.get();
+    if (tempSnapshot.size > 0) {
+      console.log(`   ⚠️  기존 임시 데이터 ${tempSnapshot.size}개 삭제`);
+      let deleteBatch = db.batch();
+      let deleteCount = 0;
 
-    // 기존 데이터 모두 삭제
-    const snapshot = await collectionRef.get();
+      tempSnapshot.forEach(doc => {
+        deleteBatch.delete(doc.ref);
+        deleteCount++;
+        if (deleteCount % BATCH_SIZE === 0) {
+          deleteBatch.commit();
+          deleteBatch = db.batch();
+        }
+      });
+
+      if (deleteCount % BATCH_SIZE > 0) {
+        await deleteBatch.commit();
+      }
+    }
+
+    // 2️⃣ 새 데이터를 임시 컬렉션에 저장 (스트리밍)
+    for (let i = 0; i < data.length; i += BATCH_SIZE) {
+      const chunk = data.slice(i, i + BATCH_SIZE);
+      let writeBatch = db.batch();
+
+      chunk.forEach((item, chunkIndex) => {
+        const docId = item.MGMD_ID || `item_${i + chunkIndex}`;
+        const docRef = tempCollectionRef.doc(docId);
+        writeBatch.set(docRef, item);
+      });
+
+      await writeBatch.commit();
+      const progress = Math.min(i + BATCH_SIZE, data.length);
+      console.log(`   ✓ ${progress}/${data.length} 저장 완료`);
+    }
+
+    console.log('✅ 임시 컬렉션 저장 완료');
+
+    // 3️⃣ 기존 컬렉션 삭제
+    console.log('🗑️  기존 데이터 삭제 시작...');
+    const mainSnapshot = await mainCollectionRef.get();
     let deleteBatch = db.batch();
     let deleteCount = 0;
 
-    snapshot.forEach(doc => {
+    mainSnapshot.forEach(doc => {
       deleteBatch.delete(doc.ref);
       deleteCount++;
-
       if (deleteCount % BATCH_SIZE === 0) {
-        // 배치 커밋하고 새 배치 시작
         deleteBatch.commit();
         deleteBatch = db.batch();
       }
@@ -122,26 +161,49 @@ async function saveDataToFirestore(data) {
       await deleteBatch.commit();
     }
 
-    console.log(`   기존 ${snapshot.size}개 항목 삭제 완료`);
+    console.log(`✅ 기존 데이터 ${mainSnapshot.size}개 삭제 완료`);
 
-    // 새 데이터 추가 (배치 단위로 나누어 저장)
-    for (let i = 0; i < data.length; i += BATCH_SIZE) {
-      const chunk = data.slice(i, i + BATCH_SIZE);
-      let writeBatch = db.batch();
+    // 4️⃣ 임시 → 정식으로 변경 (문서 복사)
+    console.log('🔄 데이터 전환 중...');
+    const tempData = await tempCollectionRef.get();
+    for (let i = 0; i < tempData.docs.length; i += BATCH_SIZE) {
+      const chunk = tempData.docs.slice(i, i + BATCH_SIZE);
+      let copyBatch = db.batch();
 
-      chunk.forEach((item, chunkIndex) => {
-        const docId = item.MGMD_ID || `item_${i + chunkIndex}`;
-        const docRef = collectionRef.doc(docId);
-        writeBatch.set(docRef, item);
+      chunk.forEach(doc => {
+        const mainRef = mainCollectionRef.doc(doc.id);
+        copyBatch.set(mainRef, doc.data());
       });
 
-      await writeBatch.commit();
-      console.log(`   ✓ ${Math.min(i + BATCH_SIZE, data.length)}/${data.length} 저장 완료`);
+      await copyBatch.commit();
+      const progress = Math.min(i + BATCH_SIZE, tempData.docs.length);
+      console.log(`   ✓ ${progress}/${tempData.docs.length} 전환 완료`);
     }
 
-    console.log(`✅ Firestore 저장 완료: ${data.length}개 항목\n`);
+    console.log('✅ 데이터 전환 완료');
 
-    // 메타데이터(마지막 업데이트 시간) 저장
+    // 5️⃣ 임시 컬렉션 삭제
+    console.log('🗑️  임시 컬렉션 삭제...');
+    const finalTempSnapshot = await tempCollectionRef.get();
+    deleteBatch = db.batch();
+    deleteCount = 0;
+
+    finalTempSnapshot.forEach(doc => {
+      deleteBatch.delete(doc.ref);
+      deleteCount++;
+      if (deleteCount % BATCH_SIZE === 0) {
+        deleteBatch.commit();
+        deleteBatch = db.batch();
+      }
+    });
+
+    if (deleteCount % BATCH_SIZE > 0) {
+      await deleteBatch.commit();
+    }
+
+    console.log('✅ 임시 컬렉션 정리 완료\n');
+
+    // 6️⃣ 메타데이터 업데이트
     const metadataRef = db.collection('metadata').doc('lastUpdate');
     await metadataRef.set({
       lastUpdated: new Date().toISOString(),
@@ -150,6 +212,32 @@ async function saveDataToFirestore(data) {
     console.log('✅ 메타데이터 저장 완료');
   } catch (error) {
     console.error(`❌ Firestore 저장 오류:`, error.message);
+    console.log('🔄 실패 시 임시 컬렉션 정리...');
+
+    // 실패 시 임시 컬렉션만 삭제
+    try {
+      const cleanupSnapshot = await tempCollectionRef.get();
+      let cleanupBatch = db.batch();
+      let cleanupCount = 0;
+
+      cleanupSnapshot.forEach(doc => {
+        cleanupBatch.delete(doc.ref);
+        cleanupCount++;
+        if (cleanupCount % BATCH_SIZE === 0) {
+          cleanupBatch.commit();
+          cleanupBatch = db.batch();
+        }
+      });
+
+      if (cleanupCount % BATCH_SIZE > 0) {
+        await cleanupBatch.commit();
+      }
+
+      console.log('✅ 임시 컬렉션 정리 완료 (기존 데이터 유지)');
+    } catch (cleanupError) {
+      console.error('❌ 임시 컬렉션 정리 실패:', cleanupError.message);
+    }
+
     throw error;
   }
 }
