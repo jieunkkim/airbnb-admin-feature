@@ -1,0 +1,16 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // homestays 컬렉션: 누구나 읽기 가능, 쓰기는 불가
+    match /homestays/{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 기본: 모든 접근 차단
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
