@@ -23,8 +23,8 @@ function extractRequiredFields(item) {
     BPLC_NM: item.BPLC_NM || '',
     ROAD_NM_ADDR: item.ROAD_NM_ADDR || '',
     LOTNO_ADDR: item.LOTNO_ADDR || '',
-    SALS_STTS_CD: item.DTL_SALS_STTS_CD || '',
-    SALS_STTS_NM: item.DTL_SALS_STTS_NM || '',
+    SALS_STTS_CD: item.SALS_STTS_CD || '',
+    SALS_STTS_NM: item.SALS_STTS_NM || '',
     LCPMT_YMD: item.LCPMT_YMD || '',
     BLDG_USG_NM: item.BLDG_USG_NM || '',
     GSRM_CNT: item.GSRM_CNT || 0,
@@ -68,7 +68,7 @@ async function fetchAllData() {
         allItems = allItems.concat(filteredItems);
 
         totalCount = parseInt(json.response.body.totalCount) || 0;
-        hasMore = allItems.length < totalCount;
+        hasMore = (pageNo - 1) * 100 < totalCount;
 
         console.log(`   ✓ ${items.length}개 추가 (누적: ${allItems.length}개)`);
         pageNo++;
@@ -108,7 +108,6 @@ async function saveDataToJsonFile(data) {
     // 메타데이터와 함께 저장
     const fileData = {
       metadata: {
-        lastUpdated: new Date().toISOString(),
         itemCount: data.length
       },
       items: data

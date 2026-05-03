@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="../js/region-codes.js"></script>
-  <script src="../js/business-status-codes.js"></script>
   <style>
     /* ── FILTER SECTION ── */
     .filter-section { background: var(--s1); border: 1px solid var(--b1); border-radius: var(--r12); padding: 20px; margin-bottom: 20px; }
@@ -86,7 +85,6 @@
       <div>
         <h1 class="pg-title">외국인 도시 <span>민박업 현황</span><span class="ver-badge">v2 · 2026-05-03</span></h1>
         <p class="pg-sub">공공데이터 기반 전국 외국인 관광 도시 민박업 허가 업장 현황 조회</p>
-        <p class="pg-sub" style="font-size: 12px; color: var(--t3); margin-top: 8px;">📅 최근 업데이트: <span id="last_update">로딩 중...</span></p>
       </div>
     </div>
 
@@ -123,12 +121,6 @@
           <label>영업상태명</label>
           <select id="status_filter">
             <option value="">전체</option>
-            <option value="영업/정상">영업/정상</option>
-            <option value="휴업">휴업</option>
-            <option value="폐업">폐업</option>
-            <option value="취소/말소/만료/정지/중지">취소/말소/만료/정지/중지</option>
-            <option value="제외/삭제/전출">제외/삭제/전출</option>
-            <option value="기타">기타</option>
           </select>
         </div>
       </div>
@@ -268,6 +260,23 @@
       }
     }
 
+    /* ═══════════ STATUS FILTER ═══════════ */
+    function populateStatusFilter() {
+      const seen = new Map();
+      allData.forEach(item => {
+        if (item.SALS_STTS_CD && !seen.has(item.SALS_STTS_CD)) {
+          seen.set(item.SALS_STTS_CD, item.SALS_STTS_NM);
+        }
+      });
+      const select = document.getElementById('status_filter');
+      seen.forEach((name, code) => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+    }
+
     /* ═══════════ DATA LOAD ═══════════ */
     async function loadDataFromFile(){
       try {
@@ -285,28 +294,6 @@
       }
     }
 
-    /* ═══════════ METADATA ═══════════ */
-    function loadLastUpdateTime(){
-      try {
-        if(metadata && metadata.lastUpdated) {
-          const lastUpdated = new Date(metadata.lastUpdated);
-          const formatted = lastUpdated.toLocaleString('ko-KR', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-          });
-          document.getElementById('last_update').textContent = formatted;
-        } else {
-          document.getElementById('last_update').textContent = '데이터 없음';
-        }
-      } catch(e) {
-        console.error(e);
-        document.getElementById('last_update').textContent = '로드 실패';
-      }
-    }
 
     /* ═══════════ FILTER (클라이언트 필터링) ═══════════ */
     function filterDataByConditions(filters){
@@ -324,8 +311,8 @@
           if(sigunguInAddr !== filters.sigunguName) return false;
         }
 
-        // 영업상태 필터 (필수) - 코드값으로 비교
-        if(item.SALS_STTS_CD !== filters.statusCode) return false;
+        // 영업상태 필터 - 코드값으로 비교, 빈값이면 전체
+        if(filters.statusCode && item.SALS_STTS_CD !== filters.statusCode) return false;
 
         // 허가일자 범위
         if(filters.permitFrom && item.LCPMT_YMD < filters.permitFrom) return false;
@@ -405,7 +392,7 @@
 
       pageData.forEach(item => {
         const tr = document.createElement('tr');
-        const statusCls = item.SALS_STTS_NM === '영업/정상' ? 'status-open' : 'status-closed';
+        const statusCls = item.SALS_STTS_CD === '01' ? 'status-open' : 'status-closed';
         const statusDisplay = item.SALS_STTS_NM || '-';
 
         const addr = item.ROAD_NM_ADDR || item.LOTNO_ADDR || '';
@@ -519,17 +506,21 @@
     }
 
     /* ═══════════ CHART ═══════════ */
-    function updateRegionChart(){
-      // 색상 생성 함수 (동적으로 상태마다 다른 색상)
-      const colors = [
-        { bg: 'rgba(22, 163, 74, 0.7)', border: '#16a34a' },    // 녹색
-        { bg: 'rgba(220, 38, 38, 0.7)', border: '#dc2626' },    // 빨강
-        { bg: 'rgba(217, 119, 6, 0.7)', border: '#d97706' },    // 주황
-        { bg: 'rgba(59, 130, 246, 0.7)', border: '#3b82f6' },   // 파랑
-        { bg: 'rgba(107, 114, 128, 0.7)', border: '#6b7280' },  // 회색
-        { bg: 'rgba(168, 85, 247, 0.7)', border: '#a855f7' }    // 보라
-      ];
+    function getStatusColor(status) {
+      const colorMap = {
+        '영업중': { bg: 'rgba(22, 163, 74, 0.7)', border: '#16a34a' },          // 녹색
+        '폐업': { bg: 'rgba(220, 38, 38, 0.7)', border: '#dc2626' },            // 빨강
+        '휴업': { bg: 'rgba(217, 119, 6, 0.7)', border: '#d97706' },            // 주황
+        '영업정지': { bg: 'rgba(59, 130, 246, 0.7)', border: '#3b82f6' },       // 파랑
+        '등록취소': { bg: 'rgba(107, 114, 128, 0.7)', border: '#6b7280' },      // 회색
+        '지정취소': { bg: 'rgba(168, 85, 247, 0.7)', border: '#a855f7' },       // 보라
+        '직권말소': { bg: 'rgba(236, 72, 153, 0.7)', border: '#ec4899' },       // 핑크
+        '허가취소': { bg: 'rgba(249, 115, 22, 0.7)', border: '#f97316' }        // 주황-빨강
+      };
+      return colorMap[status] || { bg: 'rgba(107, 114, 128, 0.7)', border: '#6b7280' };
+    }
 
+    function updateRegionChart(){
       // 시군구별로 분류 (주소의 2번째 단어)
       const sigunguMap = {};
       const statusSet = new Set();
@@ -562,8 +553,8 @@
         return bCnt - aCnt;
       });
 
-      const datasets = statuses.map((status, idx) => {
-        const color = colors[idx % colors.length];
+      const datasets = statuses.map(status => {
+        const color = getStatusColor(status);
         return {
           label: status,
           data: labels.map(l => sigunguMap[l][status] || 0),
@@ -595,28 +586,25 @@
     /* ═══════════ INIT ═══════════ */
     window.addEventListener('DOMContentLoaded', async () => {
       initFilters();
-      loadLastUpdateTime();
 
       // Firestore에서 데이터 로드
       toast('데이터 로드 중...');
       const loaded = await loadDataFromFile();
 
       if(loaded) {
-        // 데이터에서 unique한 영업상태 코드 추출
-        const uniqueStatusCodes = [...new Set(allData.map(item => item.SALS_STTS_CD).filter(Boolean))];
-        const firstStatusCode = uniqueStatusCodes[0] || '';
+        populateStatusFilter();
+
+        const firstCode = allData.find(item => item.SALS_STTS_CD)?.SALS_STTS_CD || '';
+        document.getElementById('status_filter').value = firstCode;
 
         const initialFilters = {
           sidoCode: '6110000_ALL',
           sigunguName: '',
-          statusCode: firstStatusCode,  // 코드값으로 필터링
+          statusCode: firstCode,
           permitFrom: '',
           permitTo: '',
           searchKeyword: ''
         };
-
-        console.log('📊 데이터에 있는 영업상태 코드:', uniqueStatusCodes);
-        console.log('🔍 초기 필터 코드:', firstStatusCode);
 
         filteredData = filterDataByConditions(initialFilters);
         currentPage = 1;
