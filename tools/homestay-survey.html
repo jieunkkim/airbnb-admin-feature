@@ -345,7 +345,7 @@
 
       filteredData = filterDataByConditions(filters);
       currentPage = 1;  // 페이지 초기화
-      updateRegionChart(statusName);
+      updateRegionChart(filters.sidoCode);
       renderTable();
       toast('검색 완료');
     }
@@ -493,22 +493,39 @@
     }
 
     /* ═══════════ CHART ═══════════ */
-    function updateRegionChart(statusName){
-      // 시군구별로 분류 (주소의 2번째 단어)
+    function updateRegionChart(sidoCode){
+      // 선택된 시도 내의 전체 데이터에서 정상영업과 폐업만 필터링
+      const cleanSidoCode = sidoCode.replace(/_ALL$/, '');
+      const sidoData = allData.filter(item => {
+        const itemSido = extractSidoFromAddress(item.ROAD_NM_ADDR || item.LOTNO_ADDR || '');
+        const itemSidoCode = getSidoCode(itemSido);
+        return itemSidoCode === sidoCode;
+      });
+
+      // 시군구별 정상영업/폐업 분류
       const sigunguMap = {};
-      filteredData.forEach(item => {
+      sidoData.forEach(item => {
         const addr = item.ROAD_NM_ADDR || item.LOTNO_ADDR || '';
         const parts = addr.split(' ');
         const sigungu = parts[1] || '알수없음';
-        sigunguMap[sigungu] = (sigunguMap[sigungu] || 0) + 1;
+
+        if(!sigunguMap[sigungu]) {
+          sigunguMap[sigungu] = { open: 0, closed: 0 };
+        }
+
+        if(item.SALS_STTS_NM === '폐업') {
+          sigunguMap[sigungu].closed++;
+        } else {
+          sigunguMap[sigungu].open++;
+        }
       });
 
-      // 개수 많은 순서대로 정렬
-      const labels = Object.keys(sigunguMap).sort((a, b) => sigunguMap[b] - sigunguMap[a]);
-      const data = labels.map(l => sigunguMap[l]);
-
-      // 영업상태에 따른 차트 레이블 생성
-      const chartLabel = statusName ? `${statusName} 업장 수` : '업장 수';
+      // 개수 많은 순서대로 정렬 (정상영업 + 폐업 합계 기준)
+      const labels = Object.keys(sigunguMap).sort((a, b) =>
+        (sigunguMap[b].open + sigunguMap[b].closed) - (sigunguMap[a].open + sigunguMap[a].closed)
+      );
+      const openData = labels.map(l => sigunguMap[l].open);
+      const closedData = labels.map(l => sigunguMap[l].closed);
 
       const ctx = document.getElementById('regionChart');
       if(regionChart) regionChart.destroy();
@@ -516,20 +533,31 @@
         type: 'bar',
         data: {
           labels: labels,
-          datasets: [{
-            label: chartLabel,
-            data: data,
-            backgroundColor: 'rgba(232, 101, 10, 0.7)',
-            borderColor: '#e8650a',
-            borderWidth: 1
-          }]
+          datasets: [
+            {
+              label: '정상영업',
+              data: openData,
+              backgroundColor: 'rgba(22, 163, 74, 0.7)',
+              borderColor: '#16a34a',
+              borderWidth: 1
+            },
+            {
+              label: '폐업',
+              data: closedData,
+              backgroundColor: 'rgba(220, 38, 38, 0.7)',
+              borderColor: '#dc2626',
+              borderWidth: 1
+            }
+          ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          indexAxis: 'y',
+          plugins: { legend: { position: 'bottom' } },
           scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            x: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } },
+            y: { stacked: true }
           }
         }
       });
@@ -565,7 +593,7 @@
 
         filteredData = filterDataByConditions(initialFilters);
         currentPage = 1;
-        updateRegionChart('영업/정상');
+        updateRegionChart('6110000_ALL');
         renderTable();
         toast('준비 완료');
       }
