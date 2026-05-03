@@ -99,9 +99,7 @@
       <div class="filter-row">
         <div class="filter-group">
           <label>개방자치단체코드</label>
-          <select id="sido_filter" onchange="updateSigunguFilter()">
-            <option value="">시도 선택</option>
-          </select>
+          <select id="sido_filter" onchange="updateSigunguFilter()"></select>
         </div>
         <div class="filter-group">
           <label>세부 지역</label>
@@ -328,10 +326,6 @@
       const searchKeyword = document.getElementById('search_keyword').value;
 
       // 필수 필터 검증
-      if(!sidoCode) {
-        toast('시도를 선택해주세요');
-        return;
-      }
       if(!statusName) {
         toast('영업상태를 선택해주세요');
         return;
