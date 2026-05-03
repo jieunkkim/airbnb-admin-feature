@@ -19,6 +19,23 @@ const API_KEY = '13975442ce0832bbf042aab5064909e38fb717167213168ca3b81d484b7662d
 const API_URL = 'https://apis.data.go.kr/1741000/foreigner_city_homestays/info';
 
 /**
+ * 필요한 필드만 추출
+ */
+function extractRequiredFields(item) {
+  return {
+    MGMD_ID: item.MGMD_ID,
+    BPLC_NM: item.BPLC_NM,
+    ROAD_NM_ADDR: item.ROAD_NM_ADDR,
+    LOTNO_ADDR: item.LOTNO_ADDR,
+    SALS_STTS_NM: item.SALS_STTS_NM,
+    LCPMT_YMD: item.LCPMT_YMD,
+    BLDG_USG_NM: item.BLDG_USG_NM,
+    GSRM_CNT: item.GSRM_CNT,
+    FCLT_SCL: item.FCLT_SCL
+  };
+}
+
+/**
  * 모든 데이터를 페이징으로 가져오기
  */
 async function fetchAllData() {
@@ -49,7 +66,9 @@ async function fetchAllData() {
           ? json.response.body.items.item
           : [json.response.body.items.item];
 
-        allItems = allItems.concat(items);
+        // 필요한 필드만 추출
+        const filteredItems = items.map(extractRequiredFields);
+        allItems = allItems.concat(filteredItems);
 
         totalCount = parseInt(json.response.body.totalCount) || 0;
         hasMore = allItems.length < totalCount;
@@ -79,7 +98,7 @@ async function fetchAllData() {
 async function saveDataToFirestore(data) {
   try {
     const collectionRef = db.collection('homestays');
-    const BATCH_SIZE = 400; // Firestore 배치당 최대 500개 작업, 안전하게 400개씩
+    const BATCH_SIZE = 200; // 더 작은 청크로 나누어 저장
 
     console.log('💾 Firestore 저장 시작...');
 
