@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>외국인 도시 민박업 현황</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ── INPUT GRID ── */
+    .input-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px 18px}
+
+    /* ── KPI CARDS ── */
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+    .kpi-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r12);padding:16px;text-align:center}
+    .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);font-weight:600;margin-bottom:8px}
+    .kpi-val{font-size:28px;font-weight:800;color:var(--ac);font-variant-numeric:tabular-nums}
+    .kpi-sub{font-size:11px;color:var(--t3);margin-top:4px}
+
+    /* ── CHART CONTAINER ── */
+    .chart-container{position:relative;height:300px;margin:20px 0;padding:16px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r12)}
+
+    /* ── TABLE ── */
+    .tbl-scroll{overflow-x:auto;margin-bottom:12px}
+    table{width:100%;border-collapse:collapse;min-width:700px}
+    thead{background:var(--s2);border-bottom:1px solid var(--b1)}
+    thead th{padding:12px;text-align:left;font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
+    tbody td{padding:12px;border-bottom:1px solid var(--b1);font-size:13px;color:var(--t1)}
+    tbody tr:hover{background:rgba(232,101,10,.02)}
+    .addr-cell{font-size:12px;color:var(--t3);line-height:1.4}
+    .status-open{color:var(--gr);font-weight:600}
+    .status-closed{color:var(--rd);font-weight:600}
+
+    /* ── BUTTONS ── */
+    .export-btn{padding:8px 16px;font-size:12px;font-weight:600;background:var(--bl);color:#fff;border:none;border-radius:var(--r4);cursor:pointer;transition:all .15s;margin-right:8px}
+    .export-btn:hover{background:#1d4ed8}
+
+    @media(max-width:860px){.hdr{flex-direction:column;align-items:flex-start}}
+    @media(max-width:480px){.wrap{padding:20px 10px 60px}.kpi-val{font-size:22px}.chart-container{height:250px}.tbl-scroll table{min-width:0}}
+
+    @media print{
+      body{background:#fff;font-size:11px}
+      .bg-glow,.hdr-btns,#toast{display:none!important}
+      .wrap{padding:16px;max-width:100%}
+      .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
+      .chart-container{height:200px;page-break-inside:avoid}
+      table{min-width:0}
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div class="wrap">
+
+    <a href="../index.html" class="back-nav">← 홈으로 돌아가기</a>
+
+    <!-- HEADER -->
+    <div class="hdr fuv">
+      <div>
+        <h1 class="pg-title">외국인 도시 <span>민박업 현황</span><span class="ver-badge">v1 · 2026-05-03</span></h1>
+        <p class="pg-sub">공공데이터 기반 전국 외국인 관광 도시 민박업 허가 업장 현황</p>
+      </div>
+      <div class="hdr-btns">
+        <button class="notion-btn" onclick="resetFilters()">↺ 필터 초기화</button>
+        <button class="notion-btn" onclick="exportCSV()">📥 CSV 다운로드</button>
+        <button class="notion-btn primary" onclick="window.print()">🖨️ 인쇄</button>
+      </div>
+    </div>
+
+    <!-- FILTER CARD -->
+    <div class="card fuv d1">
+      <div class="card-hdr">
+        <div class="card-ico" style="background:rgba(232,101,10,.1)">🔍</div>
+        <span class="card-ttl">조건 필터</span>
+      </div>
+      <div class="card-body">
+        <div class="input-grid">
+          <div class="ig-field">
+            <label>지역(시도)</label>
+            <select id="region_filter" onchange="recalc()">
+              <option value="">전체</option>
+            </select>
+          </div>
+          <div class="ig-field">
+            <label>영업상태</label>
+            <select id="status_filter" onchange="recalc()">
+              <option value="">전체</option>
+              <option value="영업/정상">영업/정상</option>
+              <option value="영업중">영업중</option>
+            </select>
+          </div>
+          <div class="ig-field">
+            <label>건물용도</label>
+            <select id="building_filter" onchange="recalc()">
+              <option value="">전체</option>
+            </select>
+          </div>
+          <div class="ig-field">
+            <label>데이터 상태</label>
+            <div style="padding-top:8px;color:var(--t3);font-size:12px">
+              <span id="data_status">로딩 중...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="kpi-grid fuv d1">
+      <div class="kpi-card">
+        <div class="kpi-label">전체 업장</div>
+        <div class="kpi-val" id="kpi_total">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">영업중</div>
+        <div class="kpi-val" style="color:var(--gr)" id="kpi_active">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">폐업</div>
+        <div class="kpi-val" style="color:var(--rd)" id="kpi_closed">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">지역 수</div>
+        <div class="kpi-val" style="color:var(--bl)" id="kpi_regions">0</div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="card fuv d2">
+      <div class="card-hdr">
+        <div class="card-ico" style="background:rgba(37,99,235,.1)">📊</div>
+        <span class="card-ttl">지역별 업장 분포</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="regionChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card fuv d2">
+      <div class="card-hdr">
+        <div class="card-ico" style="background:rgba(22,163,74,.1)">📈</div>
+        <span class="card-ttl">허가 추이 (연도별)</span>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div class="card fuv d3">
+      <div class="card-hdr">
+        <div class="card-ico" style="background:rgba(217,119,6,.1)">📋</div>
+        <span class="card-ttl">업장 목록</span>
+        <span style="font-size:12px;color:var(--t3);font-weight:500;margin-left:auto" id="table_count">0개</span>
+      </div>
+      <div class="card-body">
+        <div class="tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>업장명</th>
+                <th>주소</th>
+                <th>지역</th>
+                <th>건물용도</th>
+                <th>객실수</th>
+                <th>규모(㎡)</th>
+                <th>영업상태</th>
+                <th>허가일</th>
+              </tr>
+            </thead>
+            <tbody id="table_body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    /* ═══════════ CONFIG ═══════════ */
+    const API_KEY = '13975442ce0832bbf042aab5064909e38fb717167213168ca3b81d484b7662d1';
+    const API_URL = 'https://apis.data.go.kr/1741000/foreigner_city_homestays/info';
+
+    let allData = [];
+    let filteredData = [];
+    let regionChart = null;
+    let trendChart = null;
+
+    /* ═══════════ UTILS ═══════════ */
+    function esc(str){
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function fmtN(n){
+      return (n||0).toLocaleString('ko-KR');
+    }
+
+    function toast(msg){
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    /* ═══════════ API ═══════════ */
+    async function fetchData(){
+      document.getElementById('data_status').textContent = '데이터 로드 중...';
+      try {
+        let allItems = [];
+        let pageNo = 1;
+        let hasMore = true;
+
+        while(hasMore && pageNo <= 5) {
+          const url = `${API_URL}?serviceKey=${API_KEY}&numOfRows=100&pageNo=${pageNo}&type=json`;
+          const resp = await fetch(url);
+          const json = await resp.json();
+
+          if(json.response?.body?.items?.item) {
+            const items = Array.isArray(json.response.body.items.item)
+              ? json.response.body.items.item
+              : [json.response.body.items.item];
+            allItems = allItems.concat(items);
+
+            const total = parseInt(json.response.body.totalCount) || 0;
+            hasMore = allItems.length < total;
+            pageNo++;
+          } else {
+            hasMore = false;
+          }
+        }
+
+        allData = allItems;
+        buildFilters();
+        recalc();
+        document.getElementById('data_status').innerHTML = `✓ 업데이트: ${new Date().toLocaleDateString('ko-KR')}`;
+        toast(`${allData.length}개의 데이터 로드 완료`);
+      } catch(e) {
+        console.error(e);
+        document.getElementById('data_status').textContent = '❌ 로드 실패';
+        toast('데이터 로드 실패: ' + e.message);
+      }
+    }
+
+    /* ═══════════ FILTERS ═══════════ */
+    function buildFilters(){
+      const regions = new Set();
+      const buildings = new Set();
+
+      allData.forEach(item => {
+        regions.add(item.RGN_SE_NM || '알수없음');
+        buildings.add(item.BLDG_USG_NM || '');
+      });
+
+      const regionSel = document.getElementById('region_filter');
+      const buildingSel = document.getElementById('building_filter');
+
+      Array.from(regions).sort().forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r;
+        opt.textContent = r;
+        regionSel.appendChild(opt);
+      });
+
+      Array.from(buildings).filter(b => b).sort().forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b;
+        opt.textContent = b;
+        buildingSel.appendChild(opt);
+      });
+    }
+
+    function resetFilters(){
+      document.getElementById('region_filter').value = '';
+      document.getElementById('status_filter').value = '';
+      document.getElementById('building_filter').value = '';
+      recalc();
+      toast('필터 초기화됨');
+    }
+
+    /* ═══════════ CALC ═══════════ */
+    function recalc(){
+      const region = document.getElementById('region_filter').value;
+      const status = document.getElementById('status_filter').value;
+      const building = document.getElementById('building_filter').value;
+
+      filteredData = allData.filter(item => {
+        if(region && item.RGN_SE_NM !== region) return false;
+        if(status && item.SALS_STTS_NM !== status) return false;
+        if(building && item.BLDG_USG_NM !== building) return false;
+        return true;
+      });
+
+      updateKPIs();
+      renderTable();
+      updateCharts();
+    }
+
+    function updateKPIs(){
+      const total = filteredData.length;
+      const active = filteredData.filter(d => d.SALS_STTS_NM === '영업/정상' || d.SALS_STTS_NM === '영업중').length;
+      const closed = total - active;
+      const regions = new Set(filteredData.map(d => d.RGN_SE_NM)).size;
+
+      document.getElementById('kpi_total').textContent = fmtN(total);
+      document.getElementById('kpi_active').textContent = fmtN(active);
+      document.getElementById('kpi_closed').textContent = fmtN(closed);
+      document.getElementById('kpi_regions').textContent = fmtN(regions);
+      document.getElementById('table_count').textContent = total + '개';
+    }
+
+    function renderTable(){
+      const tbody = document.getElementById('table_body');
+      tbody.innerHTML = '';
+
+      filteredData.slice(0, 500).forEach(item => {
+        const tr = document.createElement('tr');
+        const statusCls = (item.SALS_STTS_NM === '영업/정상' || item.SALS_STTS_NM === '영업중') ? 'status-open' : 'status-closed';
+        const statusTxt = item.SALS_STTS_NM || '-';
+
+        tr.innerHTML = `
+          <td><strong>${esc(item.BPLC_NM)}</strong></td>
+          <td class="addr-cell">${esc(item.ROAD_NM_ADDR || item.LOTNO_ADDR || '-')}</td>
+          <td>${esc(item.RGN_SE_NM || '-')}</td>
+          <td>${esc(item.BLDG_USG_NM || '-')}</td>
+          <td>${fmtN(item.GSRM_CNT || '-')}</td>
+          <td>${fmtN(item.FCLT_SCL || '-')}</td>
+          <td class="${statusCls}">${statusTxt}</td>
+          <td>${item.LCPMT_YMD || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ═══════════ CHARTS ═══════════ */
+    function updateCharts(){
+      updateRegionChart();
+      updateTrendChart();
+    }
+
+    function updateRegionChart(){
+      const regionMap = {};
+      filteredData.forEach(item => {
+        const r = item.RGN_SE_NM || '알수없음';
+        regionMap[r] = (regionMap[r] || 0) + 1;
+      });
+
+      const labels = Object.keys(regionMap).sort((a, b) => regionMap[b] - regionMap[a]);
+      const data = labels.map(l => regionMap[l]);
+
+      const ctx = document.getElementById('regionChart');
+      if(regionChart) regionChart.destroy();
+      regionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '업장 수',
+            data: data,
+            backgroundColor: 'rgba(232, 101, 10, 0.7)',
+            borderColor: '#e8650a',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          }
+        }
+      });
+    }
+
+    function updateTrendChart(){
+      const yearMap = {};
+      filteredData.forEach(item => {
+        const ymd = item.LCPMT_YMD;
+        if(ymd) {
+          const year = ymd.substring(0, 4);
+          yearMap[year] = (yearMap[year] || 0) + 1;
+        }
+      });
+
+      const labels = Object.keys(yearMap).sort();
+      const data = labels.map(l => yearMap[l]);
+
+      const ctx = document.getElementById('trendChart');
+      if(trendChart) trendChart.destroy();
+      trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '연도별 허가',
+            data: data,
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22, 163, 74, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: true } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          }
+        }
+      });
+    }
+
+    /* ═══════════ EXPORT ═══════════ */
+    function exportCSV(){
+      if(filteredData.length === 0) {
+        toast('내보낼 데이터가 없습니다');
+        return;
+      }
+
+      const headers = ['업장명', '주소', '지역', '건물용도', '객실수', '규모(㎡)', '영업상태', '허가일'];
+      const rows = filteredData.map(item => [
+        item.BPLC_NM || '',
+        item.ROAD_NM_ADDR || item.LOTNO_ADDR || '',
+        item.RGN_SE_NM || '',
+        item.BLDG_USG_NM || '',
+        item.GSRM_CNT || '',
+        item.FCLT_SCL || '',
+        item.SALS_STTS_NM || '',
+        item.LCPMT_YMD || ''
+      ]);
+
+      let csv = headers.join(',') + '\n';
+      rows.forEach(row => {
+        csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `외국인민박업_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast('CSV 다운로드 완료');
+    }
+
+    /* ═══════════ INIT ═══════════ */
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchData();
+    });
+  </script>
+</body>
+</html>
