@@ -6,6 +6,7 @@
   <title>외국인 도시 민박업 현황</title>
   <link rel="stylesheet" href="../styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="../js/region-codes.js"></script>
   <style>
     /* ── INPUT GRID ── */
     .input-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px 18px}
@@ -325,10 +326,16 @@
         const statusCls = (item.SALS_STTS_NM === '영업/정상' || item.SALS_STTS_NM === '영업중') ? 'status-open' : 'status-closed';
         const statusTxt = item.SALS_STTS_NM || '-';
 
+        // 주소에서 시도 추출 및 코드 조회
+        const addr = item.ROAD_NM_ADDR || item.LOTNO_ADDR || '';
+        const sido = extractSidoFromAddress(addr);
+        const sidoCode = getSidoCode(sido);
+        const sidoDisplay = sido ? `${sido}${sidoCode ? ` (${sidoCode})` : ''}` : '-';
+
         tr.innerHTML = `
           <td><strong>${esc(item.BPLC_NM)}</strong></td>
-          <td class="addr-cell">${esc(item.ROAD_NM_ADDR || item.LOTNO_ADDR || '-')}</td>
-          <td>${esc(item.RGN_SE_NM || '-')}</td>
+          <td class="addr-cell">${esc(addr || '-')}</td>
+          <td>${esc(sidoDisplay)}</td>
           <td>${esc(item.BLDG_USG_NM || '-')}</td>
           <td>${fmtN(item.GSRM_CNT || '-')}</td>
           <td>${fmtN(item.FCLT_SCL || '-')}</td>
