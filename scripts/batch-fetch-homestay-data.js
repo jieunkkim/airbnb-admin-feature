@@ -98,7 +98,7 @@ async function fetchAllData() {
 async function saveDataToFirestore(data) {
   const tempCollectionRef = db.collection('homestays_temp');
   const mainCollectionRef = db.collection('homestays');
-  const BATCH_SIZE = 100;
+  const BATCH_SIZE = 50;
 
   try {
     console.log('💾 임시 컬렉션에 데이터 저장 시작...');
