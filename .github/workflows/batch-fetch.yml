@@ -23,6 +23,23 @@ jobs:
       - name: 배치 스크립트 실행
         run: node scripts/batch-fetch-homestay-data.js
 
+      - name: Git 설정
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: 변경사항 커밋 및 푸시
+        if: success()
+        run: |
+          git add data/homestays.json
+          if git diff --cached --quiet; then
+            echo "데이터 변경 없음"
+          else
+            git commit -m "chore: update homestay data from public API"
+            git push
+          fi
+
       - name: 완료 알림
         if: success()
         run: echo "✅ 배치 작업 성공적으로 완료됨"
