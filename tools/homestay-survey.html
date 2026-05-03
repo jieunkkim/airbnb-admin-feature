@@ -494,30 +494,55 @@
 
     /* ═══════════ CHART ═══════════ */
     function updateRegionChart(){
+      // 영업상태별 색상 맵
+      const statusColors = {
+        '영업/정상': { bg: 'rgba(22, 163, 74, 0.7)', border: '#16a34a' },
+        '휴업': { bg: 'rgba(217, 119, 6, 0.7)', border: '#d97706' },
+        '폐업': { bg: 'rgba(220, 38, 38, 0.7)', border: '#dc2626' },
+        '취소/말소/만료/정지/중지': { bg: 'rgba(107, 114, 128, 0.7)', border: '#6b7280' },
+        '제외/삭제/전출': { bg: 'rgba(100, 116, 139, 0.7)', border: '#64748b' },
+        '기타': { bg: 'rgba(148, 163, 184, 0.7)', border: '#94a3b8' }
+      };
+
       // 시군구별로 분류 (주소의 2번째 단어)
       const sigunguMap = {};
+      const statusSet = new Set();
+
       filteredData.forEach(item => {
         const addr = item.ROAD_NM_ADDR || item.LOTNO_ADDR || '';
         const parts = addr.split(' ');
         const sigungu = parts[1] || '알수없음';
+        const status = item.SALS_STTS_NM;
+
+        statusSet.add(status);
 
         if(!sigunguMap[sigungu]) {
-          sigunguMap[sigungu] = { 영업정상: 0, 폐업: 0 };
+          sigunguMap[sigungu] = {};
         }
-
-        if(item.SALS_STTS_NM === '폐업') {
-          sigunguMap[sigungu].폐업++;
-        } else {
-          sigunguMap[sigungu].영업정상++;
-        }
+        sigunguMap[sigungu][status] = (sigunguMap[sigungu][status] || 0) + 1;
       });
 
       // 개수 많은 순서대로 정렬
-      const labels = Object.keys(sigunguMap).sort((a, b) =>
-        (sigunguMap[b].영업정상 + sigunguMap[b].폐업) - (sigunguMap[a].영업정상 + sigunguMap[a].폐업)
-      );
-      const openData = labels.map(l => sigunguMap[l].영업정상);
-      const closedData = labels.map(l => sigunguMap[l].폐업);
+      const labels = Object.keys(sigunguMap).sort((a, b) => {
+        const aCnt = Object.values(sigunguMap[a]).reduce((s, c) => s + c, 0);
+        const bCnt = Object.values(sigunguMap[b]).reduce((s, c) => s + c, 0);
+        return bCnt - aCnt;
+      });
+
+      // 상태 순서 고정
+      const statuses = ['영업/정상', '휴업', '폐업', '취소/말소/만료/정지/중지', '제외/삭제/전출', '기타'];
+      const datasets = statuses
+        .filter(status => statusSet.has(status))
+        .map(status => {
+          const colors = statusColors[status];
+          return {
+            label: status,
+            data: labels.map(l => sigunguMap[l][status] || 0),
+            backgroundColor: colors.bg,
+            borderColor: colors.border,
+            borderWidth: 1
+          };
+        });
 
       const ctx = document.getElementById('regionChart');
       if(regionChart) regionChart.destroy();
@@ -525,27 +550,12 @@
         type: 'bar',
         data: {
           labels: labels,
-          datasets: [
-            {
-              label: '정상영업',
-              data: openData,
-              backgroundColor: 'rgba(22, 163, 74, 0.7)',
-              borderColor: '#16a34a',
-              borderWidth: 1
-            },
-            {
-              label: '폐업',
-              data: closedData,
-              backgroundColor: 'rgba(220, 38, 38, 0.7)',
-              borderColor: '#dc2626',
-              borderWidth: 1
-            }
-          ]
+          datasets: datasets
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom' } },
+          plugins: { legend: { display: false } },
           scales: {
             y: { beginAtZero: true, ticks: { stepSize: 1 } }
           }
