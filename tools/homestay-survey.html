@@ -138,8 +138,8 @@
       <div class="filter-row">
         <div style="grid-column: 1 / -1; display: flex; gap: 12px; align-items: flex-end;">
           <div class="filter-group" style="flex: 1;">
-            <label>사업장명</label>
-            <input type="text" id="business_name_filter" placeholder="예: 서울 스테이">
+            <label>사업장명/주소</label>
+            <input type="text" id="search_keyword" placeholder="예: 서울 스테이, 강남구">
           </div>
           <div class="button-group" style="margin: 0;">
             <button class="btn-search" onclick="searchData()">🔍 조회</button>
@@ -307,9 +307,9 @@
         if(filters.permitFrom && item.LCPMT_YMD < filters.permitFrom) return false;
         if(filters.permitTo && item.LCPMT_YMD > filters.permitTo) return false;
 
-        // 사업장명 또는 주소 부분일치
-        if(filters.businessName) {
-          const searchLower = filters.businessName.toLowerCase();
+        // 검색어: 사업장명 또는 주소 부분일치
+        if(filters.searchKeyword) {
+          const searchLower = filters.searchKeyword.toLowerCase();
           const businessNameMatch = item.BPLC_NM.toLowerCase().includes(searchLower);
           const addressMatch = (item.ROAD_NM_ADDR || item.LOTNO_ADDR || '').toLowerCase().includes(searchLower);
           if(!businessNameMatch && !addressMatch) return false;
@@ -325,7 +325,7 @@
       const statusName = document.getElementById('status_filter').value;
       const permitFrom = document.getElementById('permit_date_from').value;
       const permitTo = document.getElementById('permit_date_to').value;
-      const businessName = document.getElementById('business_name_filter').value;
+      const searchKeyword = document.getElementById('search_keyword').value;
 
       // 필수 필터 검증
       if(!sidoCode) {
@@ -346,7 +346,7 @@
         statusName: statusName,
         permitFrom: permitFrom,
         permitTo: permitTo,
-        businessName: businessName
+        searchKeyword: searchKeyword
       };
 
       filteredData = filterDataByConditions(filters);
@@ -364,7 +364,7 @@
       document.getElementById('status_filter').value = '영업/정상';
       document.getElementById('permit_date_from').value = '';
       document.getElementById('permit_date_to').value = '';
-      document.getElementById('business_name_filter').value = '';
+      document.getElementById('search_keyword').value = '';
       filteredData = [];
       currentPage = 1;
       regionChart?.destroy?.();
@@ -557,7 +557,16 @@
           businessName: ''
         };
 
-        filteredData = filterDataByConditions(filters);
+        const initialFilters = {
+          sidoCode: '6110000_ALL',  // 서울특별시 전체
+          sigunguName: '',          // 전체
+          statusName: '영업/정상',  // 영업/정상
+          permitFrom: '',
+          permitTo: '',
+          searchKeyword: ''
+        };
+
+        filteredData = filterDataByConditions(initialFilters);
         currentPage = 1;
         updateRegionChart();
         renderTable();
