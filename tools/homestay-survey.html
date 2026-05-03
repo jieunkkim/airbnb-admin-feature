@@ -520,15 +520,15 @@
 
     /* ═══════════ CHART ═══════════ */
     function updateRegionChart(){
-      // 영업상태별 색상 맵
-      const statusColors = {
-        '영업/정상': { bg: 'rgba(22, 163, 74, 0.7)', border: '#16a34a' },
-        '휴업': { bg: 'rgba(217, 119, 6, 0.7)', border: '#d97706' },
-        '폐업': { bg: 'rgba(220, 38, 38, 0.7)', border: '#dc2626' },
-        '취소/말소/만료/정지/중지': { bg: 'rgba(107, 114, 128, 0.7)', border: '#6b7280' },
-        '제외/삭제/전출': { bg: 'rgba(100, 116, 139, 0.7)', border: '#64748b' },
-        '기타': { bg: 'rgba(148, 163, 184, 0.7)', border: '#94a3b8' }
-      };
+      // 색상 생성 함수 (동적으로 상태마다 다른 색상)
+      const colors = [
+        { bg: 'rgba(22, 163, 74, 0.7)', border: '#16a34a' },    // 녹색
+        { bg: 'rgba(220, 38, 38, 0.7)', border: '#dc2626' },    // 빨강
+        { bg: 'rgba(217, 119, 6, 0.7)', border: '#d97706' },    // 주황
+        { bg: 'rgba(59, 130, 246, 0.7)', border: '#3b82f6' },   // 파랑
+        { bg: 'rgba(107, 114, 128, 0.7)', border: '#6b7280' },  // 회색
+        { bg: 'rgba(168, 85, 247, 0.7)', border: '#a855f7' }    // 보라
+      ];
 
       // 시군구별로 분류 (주소의 2번째 단어)
       const sigunguMap = {};
@@ -555,20 +555,23 @@
         return bCnt - aCnt;
       });
 
-      // 상태 순서 고정
-      const statuses = ['영업/정상', '휴업', '폐업', '취소/말소/만료/정지/중지', '제외/삭제/전출', '기타'];
-      const datasets = statuses
-        .filter(status => statusSet.has(status))
-        .map(status => {
-          const colors = statusColors[status];
-          return {
-            label: status,
-            data: labels.map(l => sigunguMap[l][status] || 0),
-            backgroundColor: colors.bg,
-            borderColor: colors.border,
-            borderWidth: 1
-          };
-        });
+      // 상태를 동적으로 추출 (정렬: 개수 많은 순)
+      const statuses = Array.from(statusSet).sort((a, b) => {
+        const aCnt = Object.values(sigunguMap).reduce((sum, item) => sum + (item[a] || 0), 0);
+        const bCnt = Object.values(sigunguMap).reduce((sum, item) => sum + (item[b] || 0), 0);
+        return bCnt - aCnt;
+      });
+
+      const datasets = statuses.map((status, idx) => {
+        const color = colors[idx % colors.length];
+        return {
+          label: status,
+          data: labels.map(l => sigunguMap[l][status] || 0),
+          backgroundColor: color.bg,
+          borderColor: color.border,
+          borderWidth: 1
+        };
+      });
 
       const ctx = document.getElementById('regionChart');
       if(regionChart) regionChart.destroy();
