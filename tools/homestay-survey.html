@@ -307,8 +307,13 @@
         if(filters.permitFrom && item.LCPMT_YMD < filters.permitFrom) return false;
         if(filters.permitTo && item.LCPMT_YMD > filters.permitTo) return false;
 
-        // 사업장명 부분일치
-        if(filters.businessName && !item.BPLC_NM.toLowerCase().includes(filters.businessName.toLowerCase())) return false;
+        // 사업장명 또는 주소 부분일치
+        if(filters.businessName) {
+          const searchLower = filters.businessName.toLowerCase();
+          const businessNameMatch = item.BPLC_NM.toLowerCase().includes(searchLower);
+          const addressMatch = (item.ROAD_NM_ADDR || item.LOTNO_ADDR || '').toLowerCase().includes(searchLower);
+          if(!businessNameMatch && !addressMatch) return false;
+        }
 
         return true;
       });
