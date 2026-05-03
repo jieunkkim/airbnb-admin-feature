@@ -1,0 +1,15 @@
+# Firebase
+.firebase/
+.firebaserc
+
+# Local development
+.claude/settings.local.json
+
+# Temporary files
+test-data/
+tools/Untitled
+
+# OS files
+.DS_Store
+*.swp
+*~
